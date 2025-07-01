@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestione Annunci - Admin</title>
+
+    <link rel="stylesheet" th:href="@{/css/bulma/css/bulma.css}">
+
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+</head>
+<body>
+
+<div th:replace="~{fragments/header :: header}"></div>
+<hr style="height: 3px; background-color: #3e77c1; border: none; margin: 0;" />
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+<hr style="height: 3px; background-color: #3e77c1; border: none; margin: 0;" />
+
+<section class="section">
+    <div class="container">
+        <h1 class="title">Gestione Annunci</h1>
+
+        <div class="box">
+            <h2 class="subtitle">Crea Nuovo Annuncio</h2>
+            <div class="field">
+                <label class="label" for="newAnnuncioTitolo">Titolo</label>
+                <div class="control">
+                    <input class="input" type="text" id="newAnnuncioTitolo" placeholder="Breve titolo dell'annuncio" required maxlength="100">
+                </div>
+            </div>
+            <div class="field">
+                <label class="label" for="newAnnuncioContenuto">Contenuto</label>
+                <div class="control">
+                    <textarea class="textarea" id="newAnnuncioContenuto" placeholder="Testo completo dell'annuncio" required maxlength="1000"></textarea>
+                </div>
+            </div>
+            <div class="field">
+                <div class="control">
+                    <button class="button is-primary" id="creaAnnuncioBtn">Crea Annuncio</button>
+                </div>
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="box">
+            <h2 class="subtitle">Annunci Esistenti</h2>
+            <div class="table-container">
+                <table class="table is-fullwidth is-striped">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Titolo</th>
+                        <th>Contenuto</th>
+                        <th>Data Pubblicazione</th>
+                        <th>Attivo</th>
+                        <th>Amministratore</th>
+                        <th>Azioni</th>
+                    </tr>
+                    </thead>
+                    <tbody id="annunciTableBody">
+                    <tr><td colspan="8" class="has-text-grey">Caricamento annunci...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="modal" id="modal-modifica-annuncio">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Modifica Annuncio</p>
+            <button class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <input type="hidden" id="editAnnuncioId">
+            <div class="field">
+                <label class="label" for="editAnnuncioTitolo">Titolo</label>
+                <div class="control">
+                    <input class="input" type="text" id="editAnnuncioTitolo" required maxlength="100">
+                </div>
+            </div>
+            <div class="field">
+                <label class="label" for="editAnnuncioContenuto">Contenuto</label>
+                <div class="control">
+                    <textarea class="textarea" id="editAnnuncioContenuto" required maxlength="1000"></textarea>
+                </div>
+            </div>
+            <div class="field">
+                <label class="checkbox">
+                    <input type="checkbox" id="editAnnuncioAttivo">
+                    Annuncio Attivo
+                </label>
+            </div>
+        </section>
+        <footer class="modal-card-foot">
+            <button class="button is-success" id="salvaModificheBtn">Salva Modifiche</button>
+            <button class="button chiudi-modale">Annulla</button>
+        </footer>
+    </div>
+</div>
+
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script th:src="@{/javascript/commonProfStudente.js}"></script>
+<script th:src="@{/javascript/adminannunci.js}"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
+</body>
+</html>

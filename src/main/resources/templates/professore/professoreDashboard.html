@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="it">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dashboard Professore</title>
+
+    <link rel="stylesheet" th:href="@{/css/bulma/css/bulma.css}" />
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+
+<div th:replace="~{fragments/header :: header}"></div>
+<hr style="height: 3px; background-color: #3e77c1; border: none; margin: 0;" />
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+<hr style="height: 3px; background-color: #3e77c1; border: none; margin: 0;" />
+
+<section class="section">
+    <div class="container">
+        <h1 class="subtitle">Benvenuto <span th:text="${username}"></span></h1>
+
+        <div class="box">
+            <h2 class="title">Disponibilità aule</h2>
+            <div class="columns">
+                <div class="column is-one-quarter">
+                    <label class="label">Seleziona una data</label>
+                    <input class="input" type="date" id="dataDisponibilita">
+                </div>
+                <div class="column is-one-quarter">
+                    <label class="label">Seleziona un'aula</label>
+                    <div class="select">
+                        <select id="aulaDisponibilita">
+                            <option value="">-- Seleziona --</option>
+                            <option th:each="aula : ${aule}" th:value="${aula.id}" th:text="${aula.nome}"></option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="columns is-multiline" id="disponibilitaGrid">
+            </div>
+        </div>
+
+
+        <div class="box">
+            <h2 class="title">Prenota un'aula</h2>
+
+            <div class="columns">
+                <div class="column is-one-quarter">
+                    <div class="field">
+                        <label class="label">Seleziona una data (Preavviso di minimo 2 giorni massimo 14)</label>
+                        <input class="input" type="date" id="dataPrenotazioneProfessore" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="columns">
+                <div class="column is-one-quarter">
+                    <div class="field">
+                        <label class="label">Ora di inizio</label>
+                        <div class="control">
+                            <div class="select is-fullwidth">
+                                <select id="orarioInizioPrenotazioneProfessore">
+                                    <option value="">-- Seleziona --</option>
+                                </select>
+                            </div>
+                            <p class="help">Seleziona l'orario di inizio (dalle 08:00 alle 19:00)</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="column is-one-quarter">
+                    <div class="field">
+                        <label class="label">Ora di fine</label>
+                        <div class="control">
+                            <div class="select is-fullwidth">
+                                <select id="orarioFinePrenotazioneProfessore" disabled>
+                                    <option value="">-- Seleziona l'orario di inizio --</option>
+                                </select>
+                            </div>
+                            <p class="help">Seleziona un orario di fine (max 4 ore, entro le 20:00)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label">Seleziona un'aula</label>
+                <div class="control">
+                    <div class="select">
+                        <select id="aulaSelectProfessore">
+                            <option value="">-- Seleziona --</option>
+                            <option th:each="aula : ${aule}" th:value="${aula.id}" th:text="${aula.nome}"></option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <button class="button is-primary" onclick="prenotaAulaProfessore()">Prenota Aula</button>
+        </div>
+
+        <!-- prenotazioni professore -->
+        <div class="box">
+            <h2 class="title">Le mie prenotazioni</h2>
+            <div class="field is-grouped mb-4" id="filtri-prenotazioni">
+                <p class="control">
+                    <button class="button is-link" data-filtro="tutte">Tutte</button>
+                </p>
+                <p class="control">
+                    <button class="button" data-filtro="attive">Attive</button>
+                </p>
+                <p class="control">
+                    <button class="button" data-filtro="terminate">Terminate</button>
+                </p>
+            </div>
+            <table class="table is-fullwidth is-striped">
+                <thead>
+                <tr>
+                    <th>Aula</th>
+                    <th>Data</th>
+                    <th>Orario Inizio</th>
+                    <th>Orario Fine</th>
+                    <th>Stato</th>
+                    <th>Azioni</th>
+                </tr>
+                </thead>
+                <tbody id="prenotazioniProfessoreTable">
+                <tr th:each="prenotazione : ${prenotazioni}">
+                    <td th:text="${prenotazione.aula.nome}">Aula</td>
+                    <td th:text="${#temporals.format(prenotazione.inizio, 'dd/MM/yyyy')}">Data</td>
+                    <td th:text="${#temporals.format(prenotazione.inizio, 'HH:mm')}">Inizio</td>
+                    <td th:text="${#temporals.format(prenotazione.fine, 'HH:mm')}">Fine</td>
+                    <td th:text="${prenotazione.attiva ? 'Attiva' : 'Terminata'}">Stato</td>
+                    <td>
+                        <button class="button is-small is-warning"
+                                th:if="${prenotazione.attiva}"
+                                th:attr="onclick=|apriModal('modal-termina-prenotazione', ${prenotazione.id})|">Termina
+                        </button>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <div class="has-text-centered mt-4">
+                <button class="button is-primary is-hidden" id="mostra-di-piu-btn">Mostra di più</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="modal" id="modal-termina-prenotazione">
+    <div class="modal-background" onclick="chiudiModale('modal-termina-prenotazione')"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Termina prenotazione</p>
+            <button class="delete" aria-label="close" onclick="chiudiModale('modal-termina-prenotazione')"></button>
+        </header>
+        <section class="modal-card-body">
+            <p>Sei sicuro di voler terminare questa prenotazione?</p>
+        </section>
+        <footer class="modal-card-foot">
+            <button class="button is-danger" id="confermaTerminaProfessoreBtn">Termina Prenotazione</button>
+            <button class="button" onclick="chiudiModale('modal-termina-prenotazione')">Chiudi</button>
+        </footer>
+    </div>
+</div>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<script th:src="@{/javascript/commonProfStudente.js}"></script>
+<script th:src="@{/javascript/prenotazioneprofessore.js}"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
+
+</body>
+</html>

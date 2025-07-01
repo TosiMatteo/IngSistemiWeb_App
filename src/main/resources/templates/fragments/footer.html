@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="it">
+<footer class="footer has-background-primary has-text-light mt-6">
+    <div class="container">
+        <div class="columns is-multiline">
+
+            <!-- Colonna 1: Logo + descrizione -->
+            <div class="column is-full-mobile is-one-third-desktop">
+                <figure class="image is-128x128 mb-2">
+                    <img th:src="@{/images/Logo.jpeg}" alt="Logo" style="object-fit: contain;">
+                </figure>
+                <p class="is-size-6">
+                    Sistema di prenotazione aule studio dell'università.
+                </p>
+            </div>
+
+            <!-- Colonna 2: Link utili -->
+            <div class="column is-full-mobile is-one-third-desktop">
+                <p class="title is-6 has-text-light">Navigazione</p>
+                <ul>
+                    <li><a th:href="@{/index}" class="has-text-light">Home</a></li>
+                    <li><a th:href="@{/login}" class="has-text-light">Login</a></li>
+                    <li><a th:href="@{/registrazione}" class="has-text-light">Registrati</a></li>
+                    <li><a th:href="@{/contatti}" class="has-text-light">Contatti</a></li>
+                </ul>
+            </div>
+
+            <!-- Colonna 3: Contatti -->
+            <div class="column is-full-mobile is-one-third-desktop">
+                <p class="title is-6 has-text-light">Contatti</p>
+                <p><i class="fas fa-envelope"></i> supporto@unife.it</p>
+                <p><i class="fas fa-phone"></i> +39 0123 456789</p>
+                <p><i class="fas fa-map-marker-alt"></i> Via Giuseppe Saragat, 1, 44124 Ferrara FE</p>
+            </div>
+        </div>
+
+        <hr class="has-background-light">
+        <div class="content has-text-centered has-text-light">
+            <p>
+                © 2025 Sistema Prenotazione Aule – Progetto accademico. Tutti i diritti riservati.
+            </p>
+        </div>
+    </div>
+</footer>
+</html>

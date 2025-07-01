@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="it">
+<head>
+    <!-- Meta informazioni base -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dashboard Amministratore</title>
+
+    <!-- Framework CSS Bulma -->
+    <link rel="stylesheet" th:href="@{/css/bulma/css/bulma.css}">
+
+    <!-- Token CSRF per protezione da attacchi -->
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+
+    <!-- Librerie JavaScript esterne -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+    <script th:src="@{/javascript/gestioneaula.js}"></script>
+</head>
+<body>
+
+<!-- Inclusione dell'header comune da template fragment -->
+<div th:replace="~{fragments/header :: header}"></div>
+
+<hr style="height: 3px; background-color: #3e77c1; border: none; margin: 0;">
+
+<!-- Inclusione della navbar comune da template fragment -->
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<hr style="height: 3px; background-color: #3e77c1; border: none; margin: 0;">
+
+<section class="section">
+    <div class="container">
+        <!-- Benvenuto personalizzato -->
+        <h1 class="subtitle">Benvenuto <span th:text="${username}"></span></h1>
+
+        <!-- Sezione Gestione Aule -->
+        <div class="box">
+            <h2 class="title">Gestione aule</h2>
+
+            <!-- Dropdown selezione aula -->
+            <div class="field">
+                <label class="label">Seleziona un'aula</label>
+                <div class="control">
+                    <div class="select">
+                        <select id="aulaSelect" onchange="loadAulaDetails()">
+                            <option value="">-- Seleziona --</option>
+                            <!-- Loop Thymeleaf per generare le opzioni -->
+                            <option th:each="aula : ${aule}"
+                                    th:value="${aula.id}"
+                                    th:data-capienza="${aula.capienza}"
+                                    th:data-risorse="${aula.risorseString}"
+                                    th:data-attiva="${aula.attiva}"
+                                    th:text="${aula.nome}">
+                            </option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form dettagli aula (nascosto inizialmente) -->
+            <div id="aulaDetails" style="display: none;">
+                <div class="columns">
+                    <!-- Campo Nome Aula -->
+                    <div class="column is-half">
+                        <div class="field">
+                            <label class="label">Nome</label>
+                            <div class="control">
+                                <input class="input" type="text" id="aulaNome" style="max-width: 300px">
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Campo Capienza -->
+                    <div class="column is-half">
+                        <div class="field">
+                            <label class="label">Capienza</label>
+                            <div class="control">
+                                <input class="input" type="number" id="aulaCapienza" style="max-width: 150px">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="columns">
+                    <!-- Campo Risorse -->
+                    <div class="column is-two-thirds">
+                        <div class="field">
+                            <label class="label">Risorse</label>
+                            <div class="control">
+                                <input class="input" type="text" id="aulaRisorse" placeholder="Proiettore, Lavagna, WiFi" style="max-width: 400px">
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Checkbox Stato Attivo -->
+                    <div class="column">
+                        <div class="field">
+                            <label class="checkbox">
+                                <input type="checkbox" id="aulaAttiva"> Aula Attiva
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pulsante Aggiornamento -->
+                <button class="button is-primary" onclick="updateAula()">Aggiorna Aula</button>
+            </div>
+        </div>
+
+        <!-- Sezione Prenotazioni -->
+        <div class="box mt-5">
+            <h2 class="title">Prenotazioni per Aula</h2>
+
+            <!-- Filtri di ricerca -->
+            <div class="columns">
+                <!-- Selezione Aula -->
+                <div class="column is-narrow">
+                    <div class="field">
+                        <label class="label">Aula</label>
+                        <div class="control">
+                            <div class="select">
+                                <select id="aulaSelectPrenotazioni">
+                                    <option value="">-- Seleziona --</option>
+                                    <option th:each="aula : ${aule}" th:value="${aula.id}" th:text="${aula.nome}"></option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Selezione Data -->
+                <div class="column is-narrow">
+                    <div class="field">
+                        <label class="label">Data</label>
+                        <div class="control">
+                            <input class="input" type="date" id="dataPrenotazione" style="width: 200px">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pulsanti Azione -->
+            <div class="field mt-3">
+                <div class="control">
+                    <button class="button is-primary" onclick="loadPrenotazioni()">Cerca Prenotazioni</button>
+                    <button class="button is-primary" onclick="DownloadTableAsPDF()" id="table-download-button">
+                        <span class="icon is-small"><i class="fas fa-download"></i></span>
+                        <span>Prenotazioni (PDF)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabella Prenotazioni -->
+            <div class="mt-4">
+                <table class="table is-fullwidth is-striped">
+                    <thead>
+                    <tr>
+                        <th>Studente</th>
+                        <th>Email</th>
+                        <th>Inizio</th>
+                        <th>Fine</th>
+                        <th>Stato</th>
+                        <th>Azioni</th>
+                        <th>Recensione</th>
+                    </tr>
+                    </thead>
+                    <tbody id="prenotazioniTable">
+                    <!-- Contenuto dinamico caricato via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="modal" id="modal-visualizza-recensione">
+    <div class="modal-background" onclick="chiudiModale('modal-visualizza-recensione')"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Recensione</p>
+            <button class="delete" aria-label="close" id="closeModalVisualizzazione"></button>
+        </header>
+        <section class="modal-card-body">
+            <textarea id="textareaVisualizzazioneRecensione" class="textarea" rows="5" disabled></textarea>
+        </section>
+        <footer class="modal-card-foot">
+            <button class="button" id="cancelModalVisualizzazione">Chiudi</button>
+        </footer>
+    </div>
+</div>
+
+<!-- Inclusione del footer comune da template fragment -->
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<!-- Icone Font Awesome -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
+<!-- Script per download PDF -->
+<script th:src="@{/javascript/downloadtable.js}"></script>
+</body>
+</html>

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="it">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dashboard Studente</title>
+
+    <link rel="stylesheet" th:href="@{/css/bulma/css/bulma.css}" />
+
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+
+<div th:replace="~{fragments/header :: header}"></div>
+
+<hr style="height: 3px; background-color: #3e77c1; border: none; margin: 0;" />
+
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<hr style="height: 3px; background-color: #3e77c1; border: none; margin: 0;" />
+
+<section class="section">
+    <div class="container">
+        <h1 class="subtitle">Benvenuto <span th:text="${username}"></span></h1>
+
+        <!-- Disponibilità aule -->
+        <div class="box">
+            <h2 class="title">Disponibilità aule</h2>
+            <div class="columns">
+                <div class="column is-one-quarter">
+                    <label class="label">Data</label>
+                    <input type="date" id="dataDisponibilita" class="input" />
+                </div>
+                <div class="column is-one-quarter">
+                    <label class="label">Aula</label>
+                    <div class="select is-fullwidth">
+                        <select id="aulaDisponibilita">
+                            <option value="">-- Seleziona --</option>
+                            <option th:each="aula : ${aule}" th:value="${aula.id}" th:text="${aula.nome}"></option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div id="disponibilitaGrid" class="columns is-multiline is-variable is-1">
+                <!-- tabella popolata dinamicamente tramite javascript -->
+            </div>
+        </div>
+
+        <!-- Form per prenotare un'aula -->
+        <div class="box">
+            <h2 class="title">Prenota un'aula</h2>
+
+            <!-- Selezione della data -->
+            <div class="columns">
+                <div class="column is-one-quarter">
+                    <div class="field">
+                        <label class="label">Seleziona una data</label>
+                        <!-- Campo per selezionare la data della prenotazione -->
+                        <input class="input" type="date" id="dataPrenotazioneStudente" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Selezione orario di inizio e fine -->
+            <div class="columns">
+                <div class="column is-one-quarter">
+                    <div class="field">
+                        <label class="label">Ora di inizio</label>
+                        <div class="control">
+                            <!-- Select popolato dinamicamente -->
+                            <div class="select is-fullwidth">
+                                <select id="orarioInizioPrenotazioneStudente">
+                                    <option value="">-- Seleziona --</option>
+                                </select>
+                            </div>
+                            <p class="help">Seleziona l'orario di inizio (dalle 08:00 alle 19:00)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="column is-one-quarter">
+                    <div class="field">
+                        <label class="label">Ora di fine</label>
+                        <div class="control">
+                            <!-- Select che si attiva solo dopo la scelta dell'orario di inizio -->
+                            <div class="select is-fullwidth">
+                                <select id="orarioFinePrenotazioneStudente" disabled>
+                                    <option value="">-- Seleziona l'orario di inizio --</option>
+                                </select>
+                            </div>
+                            <p class="help">Seleziona un orario di fine (max 4 ore, entro le 20:00)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Selezione dell'aula -->
+            <div class="field">
+                <label class="label">Seleziona un'aula</label>
+                <div class="control">
+                    <!-- Select per scegliere l'aula -->
+                    <div class="select">
+                        <select id="aulaSelectStudente">
+                            <option value="">-- Seleziona --</option>
+                            <!-- Popolamento dinamico tramite Thymeleaf -->
+                            <option th:each="aula : ${aule}" th:value="${aula.id}" th:text="${aula.nome}"></option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pulsante per inviare la prenotazione -->
+            <button class="button is-primary" onclick="prenotaAula()">Prenota Aula</button>
+        </div>
+
+        <!-- Prenotazioni studente -->
+        <div class="box">
+            <h2 class="title">Le mie prenotazioni</h2>
+            <div class="field is-grouped mb-4" id="filtri-prenotazioni">
+                <p class="control">
+                    <button class="button is-link" data-filtro="tutte">Tutte</button>
+                </p>
+                <p class="control">
+                    <button class="button" data-filtro="attive">Attive</button>
+                </p>
+                <p class="control">
+                    <button class="button" data-filtro="terminate">Terminate</button>
+                </p>
+            </div>
+            <table class="table is-fullwidth is-striped">
+                <thead>
+                <tr>
+                    <th>Aula</th>
+                    <th>Data</th>
+                    <th>Orario Inizio</th>
+                    <th>Orario Fine</th>
+                    <th>Stato</th>
+                    <th>Azioni</th>
+                    <th>Recensione</th>
+                </tr>
+                </thead>
+                <tbody id="prenotazioniStudenteTable">
+                <tr th:each="prenotazione : ${prenotazioni}">
+                    <td th:text="${prenotazione.aula.nome}">Aula</td>
+                    <td th:text="${#temporals.format(prenotazione.inizio, 'dd/MM/yyyy')}">Data</td>
+                    <td th:text="${#temporals.format(prenotazione.inizio, 'HH:mm')}">Inizio</td>
+                    <td th:text="${#temporals.format(prenotazione.fine, 'HH:mm')}">Fine</td>
+                    <td th:text="${prenotazione.attiva ? 'Attiva' : 'Terminata'}">Stato</td>
+                    <td>
+                        <button class="button is-small is-warning"
+                                th:if="${prenotazione.attiva}"
+                                th:attr="onclick=|apriModal('modal-termina-prenotazione', ${prenotazione.id})|">Termina
+                        </button>
+                    </td>
+                    <td>
+                        <button class="button is-small is-info"
+                                th:if="${!prenotazione.attiva and #strings.isEmpty(prenotazione.recensione)}"
+                                th:attr="onclick=|apriModalRecensione(${prenotazione.id})|">Lascia recensione
+                        </button>
+                        <button class="button is-small is-light"
+                                th:if="${prenotazione.recensione != null}"
+                                th:attr="onclick=|apriModalVisualizzazioneRecensione('${prenotazione.recensione}')|">Visualizza recensione
+                        </button>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <div class="has-text-centered mt-4">
+                <button class="button is-primary is-hidden" id="mostra-di-piu-btn">Mostra di più</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Modale per inserire recensione -->
+<div class="modal" id="modal-recensione">
+    <div class="modal-background" onclick="chiudiModale('modal-recensione')"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Lascia una recensione</p>
+            <button class="delete" aria-label="close" id="closeModalRecensione"></button>
+        </header>
+        <section class="modal-card-body">
+            <textarea id="recensioneTextarea" class="textarea" maxlength="1000" rows="5" placeholder="Scrivi la tua recensione (max 1000 caratteri)"></textarea>
+        </section>
+        <footer class="modal-card-foot">
+            <button class="button is-success" id="inviaRecensioneBtn">Invia</button>
+            <button class="button" id="cancelModalRecensione">Annulla</button>
+        </footer>
+    </div>
+</div>
+
+<!-- Modale per visualizzare recensione -->
+<div class="modal" id="modal-visualizza-recensione">
+    <div class="modal-background" onclick="chiudiModale('modal-visualizza-recensione')"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Recensione</p>
+            <button class="delete" aria-label="close" id="closeModalVisualizzazione"></button>
+        </header>
+        <section class="modal-card-body">
+            <textarea id="textareaVisualizzazioneRecensione" class="textarea" rows="5" disabled></textarea>
+        </section>
+        <footer class="modal-card-foot">
+            <button class="button" id="cancelModalVisualizzazione">Chiudi</button>
+        </footer>
+    </div>
+</div>
+
+<!-- Modale per annullare la prenotazione -->
+<div class="modal" id="modal-termina-prenotazione">
+    <div class="modal-background" onclick="chiudiModale('modal-termina-prenotazione')"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Annulla prenotazione</p>
+            <button class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <p>Sei sicuro di voler annullare questa prenotazione?</p>
+        </section>
+        <footer class="modal-card-foot">
+            <button class="button is-danger" id="confermaAnnullamentoStudenteBtn">Annulla Prenotazione</button>
+            <button class="button" onclick="chiudiModale('modal-termina-prenotazione')">Chiudi</button>
+        </footer>
+    </div>
+</div>
+
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<script th:src="@{/javascript/commonProfStudente.js}"></script>
+<script th:src="@{/javascript/prenotazionestudente.js}"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
+
+</body>
+</html>

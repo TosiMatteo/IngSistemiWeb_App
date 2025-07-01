@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="it">
+<head>
+    <!-- Meta tags per la configurazione della pagina -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login</title>
+    <!-- Collegamento al framework CSS Bulma -->
+    <link rel="stylesheet" th:href="@{/css/bulma/css/bulma.css}">
+</head>
+<body>
+
+<!-- Inclusione dell'header comune da template fragment -->
+<div th:replace="~{fragments/header :: header}"></div>
+
+<hr style="height: 3px; background-color: #3e77c1; border: none; margin: 0;">
+
+<!-- Inclusione della navbar comune da template fragment -->
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<hr style="height: 3px; background-color: #3e77c1; border: none; margin: 0;">
+
+<!-- Sezione hero a tutta altezza per il form di login -->
+<section class="hero is-fullheight">
+    <div class="hero-body">
+        <div class="container">
+            <!-- Sistema di griglia responsive per centrare il form -->
+            <div class="columns is-centered">
+                <!-- Definizione delle dimensioni responsive del form -->
+                <div class="column is-5-tablet is-4-desktop is-3-widescreen">
+                    <!-- Form di login con metodo POST -->
+                    <form action="/login" method="post" class="box">
+                        <!-- Token CSRF per la protezione da attacchi -->
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+                        <!-- Campo email -->
+                        <div class="field">
+                            <label for="email" class="label">Email</label>
+                            <div class="control has-icons-left">
+                                <input type="email" id="email" name="username" class="input"
+                                       placeholder="es. mario.rossi@example.com" required>
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-envelope"></i>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Campo password -->
+                        <div class="field">
+                            <label for="password" class="label">Password</label>
+                            <div class="control has-icons-left">
+                                <input type="password" id="password" name="password" class="input"
+                                       placeholder="********" required>
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-lock"></i>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Pulsante di submit -->
+                        <div class="field">
+                            <button type="submit" class="button is-primary is-fullwidth">Accedi</button>
+                        </div>
+
+                        <!-- Link alla pagina di registrazione -->
+                        <div class="has-text-centered">
+                            <a href="/registrazione">Registrati come studente</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Inclusione del footer comune da template fragment -->
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<!-- Importazione delle icone Font Awesome -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
+</body>
+</html>

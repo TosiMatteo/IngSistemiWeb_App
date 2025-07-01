@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Registrazione Utente</title> <link rel="stylesheet" th:href="@{/css/bulma/css/bulma.css}">
+</head>
+<body>
+<div th:replace="~{fragments/header :: header}"></div>
+
+<hr style="height: 3px; background-color: #3e77c1; border: none; margin: 0;">
+
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<hr style="height: 3px; background-color: #3e77c1; border: none; margin: 0;">
+
+<section class="hero is-fullheight">
+    <div class="hero-body">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-5-tablet is-4-desktop is-3-widescreen">
+                    <form th:action="@{/registrazione}" method="post" class="box" th:object="${user}">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+                        <div class="field">
+                            <label for="nome" class="label">Nome</label>
+                            <div class="control">
+                                <input type="text" id="nome" name="nome" class="input"
+                                       placeholder="Inserisci il tuo nome" required>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label for="cognome" class="label">Cognome</label>
+                            <div class="control">
+                                <input type="text" id="cognome" name="cognome" class="input"
+                                       placeholder="Inserisci il tuo cognome" required>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label for="email" class="label">Email</label>
+                            <div class="control has-icons-left">
+                                <input type="email" id="email" name="email" class="input"
+                                       placeholder="es. mario.rossi@example.com" required>
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-envelope"></i>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label for="password" class="label">Password</label>
+                            <div class="control has-icons-left">
+                                <input type="password" id="password" name="password" class="input"
+                                       placeholder="********" required>
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-lock"></i>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label for="confirmPassword" class="label">Conferma Password</label>
+                            <div class="control has-icons-left">
+                                <input type="password" id="confirmPassword" name="confirmPassword"
+                                       class="input" placeholder="********" required>
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-lock"></i>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label for="role" class="label">Ruolo</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    <select id="role" name="role" required>
+                                        <option value="" disabled selected>Seleziona un ruolo</option>
+                                        <option value="STUDENTE">Studente</option>
+                                        <option value="AMMINISTRATORE">Admin</option>
+                                        <option value="PROFESSORE">Professore</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="field" id="insegnamentoField" style="display: none;">
+                            <label for="insegnamento" class="label">Insegnamento</label>
+                            <div class="control">
+                                <input type="text" id="insegnamento" name="insegnamento" class="input"
+                                       placeholder="Es. Matematica, Informatica, ecc.">
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <button type="submit" class="button is-primary is-fullwidth">Registrati</button>
+                        </div>
+
+                        <div class="has-text-centered">
+                            <a href="/login">Torna al login</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const roleSelect = document.getElementById('role');
+        const insegnamentoField = document.getElementById('insegnamentoField');
+        const insegnamentoInput = document.getElementById('insegnamento');
+
+        // Funzione per mostrare/nascondere il campo insegnamento
+        function toggleInsegnamentoField() {
+            if (roleSelect.value === 'PROFESSORE') {
+                insegnamentoField.style.display = 'block'; // Mostra il campo
+                insegnamentoInput.setAttribute('required', 'true'); // Rendi il campo obbligatorio
+            } else {
+                insegnamentoField.style.display = 'none';  // Nascondi il campo
+                insegnamentoInput.removeAttribute('required'); // Rimuovi obbligatorietà
+                insegnamentoInput.value = ''; // Pulisci il valore quando nascosto
+            }
+        }
+
+        // Aggiungi un event listener per il cambio di selezione nel dropdown
+        roleSelect.addEventListener('change', toggleInsegnamentoField);
+
+        // Chiama la funzione una volta al caricamento della pagina,
+        // nel caso in cui il form venga ricaricato con una selezione preesistente.
+        toggleInsegnamentoField();
+    });
+</script>
+
+</body>
+</html>
