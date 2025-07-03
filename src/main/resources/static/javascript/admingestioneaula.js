@@ -1,4 +1,4 @@
-// gestioneaula.js
+// admingestioneaula.js
 
 let prenotazioniCorrenti = [];
 

@@ -1,4 +1,4 @@
-// displayaule.js
+// homedisplayaule.js
 
 /**
  * Indice corrente per la navigazione nel carosello delle aule.
