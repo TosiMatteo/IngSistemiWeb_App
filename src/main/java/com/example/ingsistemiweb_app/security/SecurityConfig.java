@@ -3,6 +3,7 @@ package com.example.ingsistemiweb_app.security;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder; // ATTENZIONE: Questo è un encoder non sicuro!
@@ -63,8 +64,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/studente/**").hasRole("STUDENTE")
 
                         // Le API delle aule che necessitano di autenticazione o ruoli specifici
-                        // Esempio: PUT/POST per creare/modificare aule (spesso da ADMIN)
-                        .requestMatchers("/api/aule/**").hasRole("AMMINISTRATORE") // Tutte le operazioni CRUD sulle aule per gli admin
+                        // 1. Permetti a QUALSIASI utente autenticato di VEDERE la disponibilità
+                        .requestMatchers(HttpMethod.GET, "/api/aule/*/disponibilita").authenticated()
+                        // 2. Riserva TUTTE le altre operazioni su /api/aule/ (es. creazione, modifica) solo agli ADMIN
+                        .requestMatchers("/api/aule/**").hasRole("AMMINISTRATORE")
                         // Fine delle nuove regole
 
                         // Solo gli ADMIN possono gestire gli annunci (crea, aggiorna, disattiva, elimina, tutti gli annunci)

@@ -1,223 +1,248 @@
-// /js/common.js
-
 /**
- * Libreria condivisa per le funzionalità comuni alle pagine studente e professore.
- * Contiene funzioni di utilità, gestione delle API, e manipolazione del DOM.
+ * /javascript/commonProfStudente.js
+ * Libreria condivisa per le funzionalità comuni.
+ * Contiene funzioni di utilità e il nuovo componente di prenotazione interattivo.
  */
 
-// --- STATO GLOBALE E COSTANTI ---
+// --- STATO GLOBALE COMUNE ---
+let prenotazioneDaTerminareId = null;
 
-const dataDisponibilitaInput = document.getElementById("dataDisponibilita");
-const aulaDisponibilitaSelect = document.getElementById("aulaDisponibilita");
-const disponibilitaGrid = document.getElementById("disponibilitaGrid");
-
-let prenotazioneDaTerminareId = null; // Unica variabile globale per l'ID della prenotazione
-
-// Impostazione del token CSRF come header predefinito per tutte le richieste Axios.
-// Assicurati che il meta tag esista nella pagina.
+// Impostazione del token CSRF per tutte le richieste Axios
 const csrfMeta = document.querySelector('meta[name="_csrf"]');
 if (csrfMeta) {
-    const CSRF_TOKEN = csrfMeta.content;
-    const CSRF_HEADER = document.querySelector('meta[name="_csrf_header"]').content;
-    axios.defaults.headers.common[CSRF_HEADER] = CSRF_TOKEN;
+    axios.defaults.headers.common[document.querySelector('meta[name="_csrf_header"]').content] = csrfMeta.content;
 }
 
-// --- FUNZIONI DI UTILITÀ ---
 
-/**
- * Mostra una notifica a schermo.
- * @param {string} message Il messaggio da visualizzare.
- * @param {boolean} isSuccess True per notifica di successo, false per errore.
- */
+// --- FUNZIONI DI UTILITÀ ---
 function showNotification(message, isSuccess = true) {
     const container = document.querySelector('.section .container');
     if (!container) return;
-
     const notification = document.createElement('div');
     notification.className = `notification ${isSuccess ? 'is-success' : 'is-danger'} is-light`;
     notification.innerHTML = `<button class="delete"></button>${message}`;
     container.prepend(notification);
-
     notification.querySelector('.delete').addEventListener('click', () => notification.remove());
     setTimeout(() => notification.remove(), 5000);
 }
 
-/**
- * Formatta un oggetto Date in una stringa YYYY-MM-DD.
- * @param {Date} date L'oggetto Date da formattare.
- * @returns {string} La data formattata.
- */
 function formatDateForInput(date) {
     return date.toISOString().split('T')[0];
 }
 
 /**
- * Converte una data e un'ora locali in una stringa ISO 8601 con offset per le API.
- * @param {string} dateString Data 'YYYY-MM-DD'.
- * @param {string} timeString Ora 'HH:mm'.
- * @returns {string} Stringa in formato ISO 8601.
+ * Converte un oggetto Date in una stringa standard ISO 8601 in formato UTC.
+ * Esempio: "2025-07-04T14:30:00.000Z"
+ * @param {Date} dateObject L'oggetto Date da convertire.
+ * @returns {string} La stringa in formato ISO.
  */
-function formatDateTimeForAPI(dateString, timeString) {
-    const localDate = new Date(`${dateString}T${timeString}`);
-    const offset = -localDate.getTimezoneOffset();
-    const sign = offset >= 0 ? '+' : '-';
-    const pad = num => String(num).padStart(2, '0');
-    const offsetHours = pad(Math.floor(Math.abs(offset) / 60));
-    const offsetMinutes = pad(Math.abs(offset) % 60);
-
-    return `${localDate.getFullYear()}-${pad(localDate.getMonth() + 1)}-${pad(localDate.getDate())}T${pad(localDate.getHours())}:${pad(localDate.getMinutes())}:00.000${sign}${offsetHours}:${offsetMinutes}`;
+function formatDateTimeForAPI(dateObject) {
+    return dateObject.toISOString();
 }
 
-async function loadDisponibilita() {
-    const data = dataDisponibilitaInput.value;
-    const aulaId = aulaDisponibilitaSelect.value;
-    const grid = disponibilitaGrid;
-    grid.innerHTML = ""; // Pulisce la griglia
 
-    if (!data || !aulaId) {
-        grid.innerHTML = '<p class="has-text-grey">Seleziona un\'aula e una data per vedere la disponibilità.</p>';
-        return;
-    }
-
-    try {
-        const response = await axios.get(`/api/aule/${aulaId}/disponibilita`, { params: { data } });
-        renderDisponibilit(response.data);
-    } catch (error) {
-        console.error("Errore disponibilità:", error);
-        showNotification('Errore nel caricamento della disponibilità delle aule.', false);
-        grid.innerHTML = '<p class="has-text-danger">Impossibile caricare la disponibilità.</p>';
-    }
-}
-
-function renderDisponibilit(slots) {
-    const grid = disponibilitaGrid;
-    grid.innerHTML = '';
-    if (slots.length === 0) {
-        grid.innerHTML = '<p class="has-text-grey">Nessun slot disponibile per la data e l\'aula selezionate.</p>';
-        return;
-    }
-
-    let headerRow = document.createElement('div');
-    headerRow.className = 'column is-full has-text-centered has-text-weight-bold is-size-5';
-    headerRow.textContent = `Disponibilità per ${dataDisponibilitaInput.value}`;
-    grid.appendChild(headerRow);
-
-    slots.forEach(slot => {
-        const col = document.createElement("div");
-        col.className = "column is-one-fifth";
-
-        const available = slot.liberi > 0;
-        const inizio = new Date(slot.inizio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const fine = new Date(slot.fine).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-        const box = document.createElement("div");
-        box.className = `box has-text-centered dispo-tile ${available ? 'has-background-success-light' : 'has-background-danger-light'}`;
-
-        box.innerHTML = `
-                <p class="time has-text-weight-semibold">${inizio} – ${fine}</p>
-                <p class="count">${available ? `<span>${slot.liberi} posti</span>` : `<span class="has-text-danger">Pieno</span>`}</p>
-            `;
-
-        col.appendChild(box);
-        grid.appendChild(col);
-    });
-}
-
-// --- FUNZIONI DI MANIPOLAZIONE DEL DOM ---
-
-/**
- * Genera opzioni per un <select> di orari con intervalli di 30 minuti.
- * @param {number} startHour L'ora di inizio (es. 8 per 08:00).
- * @param {number} endHour L'ora di fine (es. 19 per 19:00).
- * @returns {string[]} Un array di orari formattati "HH:mm".
- */
-function generateTimeOptions(startHour, endHour) {
-    const options = [];
-    for (let h = startHour; h <= endHour; h++) {
-        for (let m of [0, 30]) {
-            if (h === endHour && m > 0 && endHour < 20) break; // Orari fino alle 19:30
-            options.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
-        }
-    }
-    return options;
-}
-
-/**
- * Popola il select per l'orario di inizio.
- * @param {HTMLSelectElement} selectElement L'elemento <select> da popolare.
- */
-function populateOrarioInizio(selectElement) {
-    selectElement.innerHTML = '<option value="">-- Seleziona --</option>';
-    const orari = generateTimeOptions(8, 19);
-    orari.forEach(time => {
-        selectElement.innerHTML += `<option value="${time}">${time}</option>`;
-    });
-}
-
-/**
- * Popola il select per l'orario di fine basandosi sull'inizio selezionato.
- * @param {HTMLSelectElement} inizioSelect L'elemento <select> dell'orario di inizio.
- * @param {HTMLSelectElement} fineSelect L'elemento <select> dell'orario di fine.
- */
-function populateOrarioFine(inizioSelect, fineSelect) {
-    const inizio = inizioSelect.value;
-    fineSelect.innerHTML = '<option value="">-- Seleziona --</option>';
-
-    if (!inizio) {
-        fineSelect.disabled = true;
-        fineSelect.innerHTML = '<option value="">-- Seleziona l\'orario di inizio --</option>';
-        return;
-    }
-
-    const startTime = new Date(`1970-01-01T${inizio}:00`);
-    const maxDurationInMs = 4 * 60 * 60 * 1000;
-    const closingTime = new Date(`1970-01-01T20:00:00`);
-
-    for (let i = 1; i <= 8; i++) { // Max 8 intervalli da 30 min = 4 ore
-        const endTime = new Date(startTime.getTime() + i * 30 * 60 * 1000);
-        if (endTime > closingTime) break;
-
-        const timeString = `${String(endTime.getHours()).padStart(2, '0')}:${String(endTime.getMinutes()).padStart(2, '0')}`;
-        fineSelect.innerHTML += `<option value="${timeString}">${timeString}</option>`;
-    }
-    fineSelect.disabled = false;
-}
-
-/**
- * Aggiunge event listener per chiudere una modale.
- * @param {string} modalId L'ID della modale.
- */
-function setupModalClosers(modalId) {
-    const modal = document.getElementById(modalId);
-    if (!modal) return;
-
-    modal.querySelectorAll('.delete, .modal-background, .modal-card-foot .button:not(.is-danger):not(.is-success):not(.is-warning)')
-        .forEach(el => el.addEventListener('click', () => chiudiModal(modalId)));
-}
-
-/**
- * Apre una modale e opzionalmente imposta un ID per un'azione.
- * @param {string} modalId ID della modale.
- * @param {number|string|null} id ID della prenotazione (o altro dato).
- */
+// --- FUNZIONI PER MODALI (USATE DALLA LISTA "LE MIE PRENOTAZIONI") ---
 function apriModal(modalId, id = null) {
     const modal = document.getElementById(modalId);
     if(modalId === 'modal-termina-prenotazione') {
         prenotazioneDaTerminareId = id;
     }
-    // Aggiungere qui altre logiche per altre modali se necessario
     if (modal) modal.classList.add('is-active');
 }
 
-/**
- * Chiude una modale e resetta le variabili di stato associate.
- * @param {string} modalId ID della modale.
- */
 function chiudiModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) modal.classList.remove('is-active');
-
     if(modalId === 'modal-termina-prenotazione') {
         prenotazioneDaTerminareId = null;
+    }
+}
+
+function setupModalClosers(modalId) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    modal.querySelectorAll('.delete, .modal-background, .modal-card-foot .button:not(.is-danger):not(.is-success)').forEach(el => {
+        el.addEventListener('click', () => chiudiModal(modalId));
+    });
+}
+
+
+// --- COMPONENTE DI PRENOTAZIONE INTERATTIVO ---
+
+/**
+ * Inizializza il componente di prenotazione interattivo.
+ * @param {object} config - Oggetto di configurazione specifico per la pagina.
+ */
+function inizializzaBookingInterattivo(config) {
+    const dataInput = document.getElementById(config.dataInputId);
+    const aulaSelect = document.getElementById(config.aulaSelectId);
+    const disponibilitaGrid = document.getElementById(config.gridId);
+    const bookingSummary = document.getElementById(config.summaryId);
+    const confermaBtn = document.getElementById(config.confirmBtnId);
+    const resetBtn = document.getElementById('reset-selection-btn');
+
+    let selezioneInizioIndex = null;
+    let selezioneFineTime = null;
+    let allSlots = [];
+
+    async function loadDisponibilita() {
+        resetSelezione();
+        const data = dataInput.value;
+        const aulaId = aulaSelect.value;
+        if (!data || !aulaId) {
+            disponibilitaGrid.innerHTML = '<p class="has-text-grey column is-full">Seleziona una data e un\'aula.</p>';
+            return;
+        }
+        try {
+            const response = await axios.get(`/api/aule/${aulaId}/disponibilita`, { params: { data } });
+            allSlots = response.data;
+            renderDisponibilita(allSlots);
+        } catch (error) {
+            showNotification('Errore nel caricamento della disponibilità.', false);
+        }
+    }
+
+    function renderDisponibilita(slots) {
+        disponibilitaGrid.innerHTML = '';
+        if (slots.length === 0) {
+            disponibilitaGrid.innerHTML = '<p class="has-text-grey column is-full">Nessuno slot disponibile.</p>';
+            return;
+        }
+        slots.forEach((slot, index) => {
+            const col = document.createElement("div");
+            col.className = "column is-one-fifth";
+            const available = slot.liberi > 0;
+            const inizioTime = new Date(slot.inizio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const fineTime = new Date(slot.fine).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const box = document.createElement("div");
+
+            box.className = `box p-2 has-text-centered dispo-tile ${available ? 'has-background-success-light is-clickable' : 'has-background-danger-light has-text-grey-light'}`;
+
+            box.dataset.index = index;
+            box.innerHTML = `<p class="time has-text-weight-semibold">${inizioTime} – ${fineTime}</p><p class="count is-size-7">${available ? `<span>${slot.liberi} posti</span>` : `<span>Pieno</span>`}</p>`;
+            if (available) {
+                box.addEventListener('click', handleSlotClick);
+            }
+            col.appendChild(box);
+            disponibilitaGrid.appendChild(col);
+        });
+    }
+
+    function handleSlotClick(event) {
+        const clickedBox = event.currentTarget;
+        const clickedIndex = parseInt(clickedBox.dataset.index, 10);
+
+        if (selezioneInizioIndex === null || clickedIndex < selezioneInizioIndex) {
+            selezioneInizioIndex = clickedIndex;
+            updateSelezioneUI();
+        } else {
+            const fineProvvisoria = clickedIndex;
+            let isValidRange = true;
+            for (let i = selezioneInizioIndex; i <= fineProvvisoria; i++) {
+                if (!allSlots[i] || allSlots[i].liberi === 0) {
+                    isValidRange = false;
+                    break;
+                }
+            }
+            const durationInSlots = fineProvvisoria - selezioneInizioIndex + 1;
+            if (durationInSlots > config.maxDurationSlots) {
+                showNotification(`La durata massima della prenotazione è di ${config.maxDurationSlots / 2} ore.`, false);
+                resetSelezione();
+                return;
+            }
+            if (isValidRange) {
+                updateSelezioneUI(fineProvvisoria);
+            } else {
+                showNotification('L\'intervallo selezionato contiene orari non disponibili.', false);
+                resetSelezione();
+            }
+        }
+    }
+
+    function updateSelezioneUI(fineIndex = null) {
+        const fineReale = fineIndex === null ? selezioneInizioIndex : fineIndex;
+
+        // 1. Pulisci tutti gli stili precedenti
+        disponibilitaGrid.querySelectorAll('.dispo-tile').forEach(box => {
+            box.classList.remove('has-background-link', 'has-text-white', 'has-text-info-dark'); // Rimuovi anche la nuova classe
+        });
+
+        // 2. Evidenzia l'intervallo SELEZIONATO
+        for (let i = selezioneInizioIndex; i <= fineReale; i++) {
+            disponibilitaGrid.querySelector(`[data-index='${i}']`)?.classList.add('has-background-link', 'has-text-white');
+        }
+
+        // 3. Se è stato selezionato solo l'inizio, mostra i suggerimenti
+        if (fineIndex === null) {
+            const limiteMax = selezioneInizioIndex + config.maxDurationSlots;
+            for (let i = selezioneInizioIndex + 1; i < limiteMax; i++) {
+                if (!allSlots[i] || allSlots[i].liberi === 0) {
+                    break;
+                }
+                disponibilitaGrid.querySelector(`[data-index='${i}']`)?.classList.add('has-text-info-dark');
+            }
+        }
+
+        // 4. Aggiorna il riepilogo e mostra i pulsanti (invariato)
+        const startSlot = allSlots[selezioneInizioIndex];
+        const endSlot = allSlots[fineReale];
+        selezioneFineTime = endSlot.fine;
+        document.getElementById('summary-aula').textContent = aulaSelect.options[aulaSelect.selectedIndex].text;
+        document.getElementById('summary-data').textContent = new Date(dataInput.value + 'T00:00:00').toLocaleDateString('it-IT');
+        document.getElementById('summary-orario').textContent = `${new Date(startSlot.inizio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(endSlot.fine).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
+        bookingSummary.style.display = 'block';
+        resetBtn.style.display = 'inline-block';
+    }
+
+    function resetSelezione() {
+        selezioneInizioIndex = null;
+        selezioneFineTime = null;
+        bookingSummary.style.display = 'none';
+        resetBtn.style.display = 'none';
+
+        disponibilitaGrid.querySelectorAll('.dispo-tile').forEach(box => {
+            box.classList.remove('has-background-link', 'has-text-white', 'has-text-info-dark');
+        });
+    }
+
+    // Nuova versione
+    async function prenota() {
+        if (!dataInput.value || !aulaSelect.value || selezioneInizioIndex === null || !selezioneFineTime) {
+            showNotification("Selezione non valida. Completa tutti i passaggi.", false);
+            return;
+        }
+
+        // Ora lavoriamo direttamente con gli oggetti Date
+        const inizioDate = new Date(allSlots[selezioneInizioIndex].inizio);
+        const fineDate = new Date(selezioneFineTime);
+
+        const prenotazioneData = {
+            aulaId: aulaSelect.value,
+            inizio: formatDateTimeForAPI(inizioDate), // <-- Chiamata corretta
+            fine: formatDateTimeForAPI(fineDate)      // <-- Chiamata corretta
+        };
+
+        try {
+            const response = await axios.post(config.apiEndpoint, prenotazioneData);
+            showNotification(response.data, true);
+            resetSelezione();
+            loadDisponibilita();
+            if (typeof window.loadMiePrenotazioni === 'function') {
+                window.loadMiePrenotazioni(true);
+            }
+        } catch (error) {
+            showNotification(error.response?.data || "Errore durante la prenotazione.", false);
+        }
+    }
+
+    config.setupDatePicker(dataInput);
+    dataInput.addEventListener('change', loadDisponibilita);
+    aulaSelect.addEventListener('change', loadDisponibilita);
+    confermaBtn.addEventListener('click', prenota);
+    resetBtn.addEventListener('click', resetSelezione);
+
+    if (aulaSelect.value) {
+        loadDisponibilita();
     }
 }
