@@ -27,7 +27,7 @@ function displayAula(index) {
     updateAulaDetails(aula);
 
     // Chiama una funzione ausiliaria per aggiornare l'immagine dell'aula.
-    updateAulaImage(index, aula);
+    updateAulaImage(aula);
 
     // Recupera in modo asincrono i posti occupati per l'aula corrente dal backend.
     // Viene fatta una richiesta GET all'endpoint specifico per i posti occupati di una data aula.
@@ -112,21 +112,22 @@ function updateAulaStatus(aula) {
 }
 
 /**
- * Aggiorna l'immagine dell'aula mostrata nell'interfaccia utente.
- * Le immagini sono cicliche (aula1.jpg, aula2.jpg, ..., aula5.jpg) per dare varietà.
- * @param {number} index - Indice dell'aula corrente nel carosello.
- * @param {Object} aula - Oggetto aula con i dati (utilizzato per il testo alt dell'immagine).
+ * Aggiorna l'immagine dell'aula leggendo il percorso dal campo imageUrl.
+ * @param {Object} aula - L'oggetto aula completo con il campo `imageUrl`.
  * @returns {void}
  */
-function updateAulaImage(index, aula) {
-    const img = document.getElementById("aula-image"); // Elemento HTML dell'immagine.
+function updateAulaImage(aula) {
+    const img = document.getElementById("aula-image");
 
-    // Calcola l'indice dell'immagine da usare (da 1 a 5) in modo circolare.
-    // L'operatore modulo (%) garantisce che l'indice resti nell'intervallo 0-4, a cui viene aggiunto 1.
-    const imgIndex = (index % 5) + 1; // Assumiamo 5 immagini: aula1.jpg, ..., aula5.jpg.
+    // Se l'aula ha un percorso immagine specificato, usalo.
+    if (aula.imageUrl && aula.imageUrl.trim() !== "") {
+        img.src = aula.imageUrl;
+    } else {
+        // Altrimenti, usa un'immagine di default per evitare errori.
+        img.src = "/images/placeholder.jpg";
+    }
 
-    // Imposta il percorso della sorgente dell'immagine e il testo alternativo per accessibilità.
-    img.src = `/images/aula${imgIndex}.jpg`;
+    // Aggiorna sempre il testo alternativo per l'accessibilità.
     img.alt = `Immagine dell'aula ${aula.nome}`;
 }
 
