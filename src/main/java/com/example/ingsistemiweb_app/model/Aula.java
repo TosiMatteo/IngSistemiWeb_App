@@ -17,6 +17,7 @@ public class Aula {
     @ElementCollection
     private List<String> risorse = new ArrayList<>();
     private boolean attiva = true;
+    private String imageUrl;
 
     public String getRisorseString() {
         if (risorse == null || risorse.isEmpty()) return "";
