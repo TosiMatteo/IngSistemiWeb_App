@@ -95,7 +95,21 @@ function inizializzaBookingInterattivo(config) {
         }
         try {
             const response = await axios.get(`/api/aule/${aulaId}/disponibilita`, { params: { data } });
-            allSlots = response.data;
+            let fetchedSlots = response.data;
+            const oggi = new Date();
+            // Aggiungiamo T00:00:00 per evitare problemi di fuso orario nel confronto
+            const dataSelezionata = new Date(data + 'T00:00:00');
+
+            // Confrontiamo solo la parte della data (giorno, mese, anno)
+            if (dataSelezionata.toDateString() === oggi.toDateString()) {
+                // Se è oggi, teniamo solo gli slot il cui inizio è dopo l'ora attuale.
+                const adesso = new Date();
+                allSlots = fetchedSlots.filter(slot => new Date(slot.inizio) > adesso);
+            } else {
+                // Se è un giorno futuro, usiamo tutti gli slot ricevuti.
+                allSlots = fetchedSlots;
+            }
+
             renderDisponibilita(allSlots);
         } catch (error) {
             showNotification('Errore nel caricamento della disponibilità.', false);
