@@ -1,112 +1,159 @@
 // admingestioneaula.js
 
-let prenotazioniCorrenti = [];
+document.addEventListener("DOMContentLoaded", () => {
+    // Riferimenti agli elementi del DOM
+    const aulaSelect = document.getElementById("aulaSelect");
+    const aulaDetailsDiv = document.getElementById("aulaDetails");
+    const btnNewAula = document.getElementById("btn-new-aula");
+    const btnSaveAula = document.getElementById("btn-save-aula");
+    const btnCancel = document.getElementById("btn-cancel");
 
-/**
- * Configurazione globale di Axios per il token CSRF (Cross-Site Request Forgery).
- * Questa parte di codice si occupa di leggere il token CSRF dai meta tag HTML della pagina
- * e di configurarlo come header predefinito per tutte le richieste AJAX effettuate con Axios.
- * Questo è un meccanismo di sicurezza fondamentale per proteggere l'applicazione da attacchi CSRF.
- */
-const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
-const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
-axios.defaults.headers.common[csrfHeader] = csrfToken; // Imposta l'header per tutte le future richieste Axios.
-
-/**
- * Carica i dettagli dell'aula selezionata nel form di modifica.
- * Questa funzione viene tipicamente richiamata quando l'utente seleziona un'aula da un dropdown.
- * @listens change - Ascolta l'evento 'change' sul select box delle aule (#aulaSelect).
- * @returns {void}
- */
-function loadAulaDetails() {
-    const select = document.getElementById("aulaSelect");
-    const selectedOption = select.options[select.selectedIndex]; // Ottiene l'opzione selezionata.
-
+    // Campi del form
     const aulaNomeInput = document.getElementById("aulaNome");
     const aulaCapienzaInput = document.getElementById("aulaCapienza");
     const aulaRisorseInput = document.getElementById("aulaRisorse");
     const aulaAttivaCheckbox = document.getElementById("aulaAttiva");
 
-    // Nascondi il form dei dettagli se l'opzione selezionata non ha un valore (es. "Seleziona un'aula...").
-    if (!selectedOption.value) {
-        document.getElementById("aulaDetails").style.display = "none";
-        // Assicurati che i campi siano abilitati di default quando il form è nascosto, per evitare stati bloccati.
-        aulaNomeInput.disabled = false;
-        aulaCapienzaInput.disabled = false;
-        aulaRisorseInput.disabled = false;
-        aulaAttivaCheckbox.disabled = false;
-        return; // Termina la funzione.
+    // Campi specifici per l'immagine
+    const imageUploadField = document.getElementById("image-upload-field");
+    const imagePathField = document.getElementById("image-path-field");
+    const aulaImmagineFileInput = document.getElementById("aulaImmagineFile");
+    const aulaImageUrlInput = document.getElementById("aulaImageUrl");
+    const fileNameDisplay = document.getElementById("file-name-display");
+
+    // Stato per sapere se stiamo creando o modificando
+    let isCreateMode = false;
+
+    // Imposta il token CSRF per Axios
+    const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+    const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+    axios.defaults.headers.common[csrfHeader] = csrfToken;
+
+    /**
+     * Mostra e popola il form per MODIFICARE un'aula esistente.
+     */
+    function showEditForm() {
+        isCreateMode = false;
+        const selectedOption = aulaSelect.options[aulaSelect.selectedIndex];
+
+        if (!selectedOption.value) {
+            aulaDetailsDiv.style.display = "none";
+            return;
+        }
+
+        // Mostra il campo del percorso testuale e nascondi quello di upload
+        imagePathField.style.display = 'block';
+        imageUploadField.style.display = 'none';
+
+        // Popola i campi del form
+        aulaNomeInput.value = selectedOption.text;
+        aulaCapienzaInput.value = selectedOption.getAttribute("data-capienza");
+        aulaRisorseInput.value = selectedOption.getAttribute("data-risorse");
+        aulaImageUrlInput.value = selectedOption.getAttribute("data-imageurl") || 'Nessuna immagine specificata';
+        aulaAttivaCheckbox.checked = selectedOption.getAttribute("data-attiva") === "true";
+
+        btnSaveAula.textContent = "Aggiorna Aula";
+        aulaDetailsDiv.style.display = "block";
     }
 
-    // Recupera lo stato 'attiva' dell'aula.
-    const isAulaAttiva = selectedOption.getAttribute("data-attiva") === "true";
+    /**
+     * Mostra un form vuoto per CREARE una nuova aula.
+     */
+    function showCreateForm() {
+        isCreateMode = true;
+        aulaSelect.value = "";
 
-    // Popola i campi del form di modifica con i dati dell'aula recuperati dagli attributi 'data-*' dell'opzione selezionata.
-    aulaNomeInput.value = selectedOption.text; // Il nome dell'aula è il testo dell'opzione.
-    aulaCapienzaInput.value = selectedOption.getAttribute("data-capienza");
-    aulaRisorseInput.value = selectedOption.getAttribute("data-risorse");
-    aulaAttivaCheckbox.checked = isAulaAttiva; // Imposta lo stato della checkbox 'attiva'.
+        // Mostra il campo di upload e nascondi quello del percorso testuale
+        imagePathField.style.display = 'none';
+        imageUploadField.style.display = 'block';
 
-    // ABILITA/DISABILITA IL CAMPO CAPIENZA IN BASE ALLO STATO DELL'AULA
-    // Il campo capienza è modificabile solo se l'aula NON è attiva.
-    aulaCapienzaInput.disabled = isAulaAttiva;
+        // Pulisci tutti i campi del form
+        aulaNomeInput.value = "";
+        aulaCapienzaInput.value = "";
+        aulaRisorseInput.value = "";
+        aulaImmagineFileInput.value = null; // Resetta il file input
+        fileNameDisplay.textContent = "Nessun file selezionato";
+        aulaAttivaCheckbox.checked = true;
 
-    // Anche il nome e le risorse dovrebbero idealmente essere modificabili solo se disattiva,
-    // o almeno non modificare il nome se ci sono prenotazioni attive.
-    // Per questa richiesta specifica, ci concentriamo sulla capienza.
-    // aulaNomeInput.disabled = isAulaAttiva; // Potresti volerlo fare anche per il nome
-    // aulaRisorseInput.disabled = isAulaAttiva; // E per le risorse
+        btnSaveAula.textContent = "Crea Aula";
+        aulaDetailsDiv.style.display = "block";
+    }
 
-    // La checkbox attiva può sempre essere modificata (per disattivarla o riattivarla).
-    aulaAttivaCheckbox.disabled = false;
+    /**
+     * Gestisce il salvataggio (creazione o aggiornamento) dell'aula.
+     */
+    function saveAula() {
+        if (isCreateMode) {
+            // --- Logica di CREAZIONE (POST con FormData) ---
+            const formData = new FormData();
+            formData.append("nome", aulaNomeInput.value);
+            formData.append("capienza", aulaCapienzaInput.value);
+            formData.append("risorse", aulaRisorseInput.value);
+            formData.append("attiva", aulaAttivaCheckbox.checked);
 
+            if (aulaImmagineFileInput.files.length > 0) {
+                formData.append("immagineFile", aulaImmagineFileInput.files[0]);
+            }
 
-    // Mostra il form dei dettagli dell'aula, che era precedentemente nascosto.
-    document.getElementById("aulaDetails").style.display = "block";
-}
+            axios.post('/api/aule', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            })
+                .then(() => {
+                    alert("Aula creata con successo!");
+                    window.location.reload();
+                })
+                .catch(error => {
+                    console.error("Errore creazione aula:", error);
+                    alert("Errore durante la creazione dell'aula.");
+                });
+        } else {
+            // --- Logica di AGGIORNAMENTO (PUT) ---
+            const aulaId = aulaSelect.value;
+            if (!aulaId) return;
 
-/**
- * Aggiorna i dati di un'aula esistente tramite una richiesta API REST (PUT).
- * Questa funzione viene attivata dal pulsante "Aggiorna Aula" nel form di modifica.
- * @fires PUT - Invia una richiesta HTTP PUT all'endpoint `/api/aule/{id}`.
- * @returns {void}
- */
-function updateAula() {
-    // Recupera l'ID dell'aula dal valore del select box.
-    const aulaId = document.getElementById("aulaSelect").value;
-    const aulaCapienzaInput = document.getElementById("aulaCapienza");
+            const aulaData = {
+                nome: aulaNomeInput.value,
+                capienza: parseInt(aulaCapienzaInput.value, 10),
+                risorse: aulaRisorseInput.value.split(",").map(r => r.trim()),
+                attiva: aulaAttivaCheckbox.checked,
+                imageUrl: aulaImageUrlInput.value
+            };
 
-    // Prendi i valori attuali dal DOM
-    const currentNome = document.getElementById("aulaNome").value;
-    const currentCapienza = parseInt(aulaCapienzaInput.value, 10);
-    const currentRisorse = document.getElementById("aulaRisorse").value.split(",").map(r => r.trim());
-    const currentAttiva = document.getElementById("aulaAttiva").checked;
+            axios.put(`/api/aule/${aulaId}`, aulaData)
+                .then(() => {
+                    alert("Aula aggiornata con successo!");
+                    window.location.reload();
+                })
+                .catch(error => {
+                    console.error("Errore aggiornamento aula:", error);
+                    alert(error.response?.data || "Errore durante l'aggiornamento.");
+                });
+        }
+    }
 
-    // Crea un oggetto con i dati aggiornati dell'aula prendendoli dai campi del form.
-    const updatedAula = {
-        nome: currentNome,
-        capienza: currentCapienza,
-        risorse: currentRisorse,
-        attiva: currentAttiva
+    function cancel() {
+        aulaDetailsDiv.style.display = 'none';
+        isCreateMode = false;
+        aulaSelect.value = "";
+    }
+
+    // --- Event Listeners ---
+    aulaSelect.addEventListener('change', showEditForm);
+    btnNewAula.addEventListener('click', showCreateForm);
+    btnSaveAula.addEventListener('click', saveAula);
+    btnCancel.addEventListener('click', cancel);
+
+    // Listener per mostrare il nome del file scelto
+    aulaImmagineFileInput.onchange = () => {
+        if (aulaImmagineFileInput.files.length > 0) {
+            fileNameDisplay.textContent = aulaImmagineFileInput.files[0].name;
+        } else {
+            fileNameDisplay.textContent = "Nessun file selezionato";
+        }
     };
+});
 
-    // Invia la richiesta PUT all'API utilizzando Axios.
-    axios.put(`/api/aule/${aulaId}`, updatedAula)
-        .then(() => {
-            // Se la richiesta ha successo, mostra un alert e aggiorna la pagina per riflettere le modifiche.
-            alert("Aula aggiornata con successo!");
-            // Ricarica la pagina per aggiornare il select delle aule.
-            window.location.reload();
-        })
-        .catch(error => {
-            // In caso di errore, logga l'errore in console e mostra un alert.
-            console.error("Errore aggiornamento aula:", error);
-            // Mostra il messaggio di errore dal backend se disponibile
-            const errorMessage = error.response && error.response.data ? error.response.data : "Errore durante l'aggiornamento dell'aula.";
-            alert(errorMessage);
-        });
-}
-
+let prenotazioniCorrenti = [];
 /**
  * Carica e visualizza le prenotazioni per una specifica aula in una data selezionata.
  * Questa funzione è il cuore della sezione "Prenotazioni per Aula" nella Dashboard Amministratore.

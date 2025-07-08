@@ -1,6 +1,7 @@
 package com.example.ingsistemiweb_app.controller;
 
 import com.example.ingsistemiweb_app.dto.SlotDisponibilita;
+import com.example.ingsistemiweb_app.service.FileStorageService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import com.example.ingsistemiweb_app.model.Aula;
@@ -12,6 +13,7 @@ import com.example.ingsistemiweb_app.service.EmailSenderService; // Importa Emai
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional; // Importa Transactional
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime; // Importa LocalDateTime
@@ -32,6 +34,9 @@ public class AulaRestController {
 
     @Autowired // Inietta EmailSenderService
     private EmailSenderService emailSenderService;
+
+    @Autowired
+    FileStorageService fileStorageService;
 
     @GetMapping
     public List<Aula> getAllAule() {
@@ -174,6 +179,34 @@ public class AulaRestController {
         long occupati = prenotazioneRepository.sumPostiOverlapping(aula, now, now.plusMinutes(1)); // Consideriamo un piccolo intervallo per "ora corrente"
 
         return ResponseEntity.ok((int) occupati);
+    }
+
+    /**
+     * Crea una nuova aula con un'immagine allegata.
+     * Mappa richieste POST di tipo multipart/form-data.
+     */
+    @PostMapping(consumes = "multipart/form-data")
+    public ResponseEntity<Aula> createAulaWithImage(
+            @RequestParam("nome") String nome,
+            @RequestParam("capienza") int capienza,
+            @RequestParam("risorse") String risorse,
+            @RequestParam("attiva") boolean attiva,
+            @RequestParam(value = "immagineFile", required = false) MultipartFile immagineFile) {
+
+        Aula newAula = new Aula();
+        newAula.setNome(nome);
+        newAula.setCapienza(capienza);
+        newAula.setRisorse(java.util.Arrays.asList(risorse.split(",")));
+        newAula.setAttiva(attiva);
+
+        // Se un file immagine è stato caricato, salvalo e imposta l'URL
+        if (immagineFile != null && !immagineFile.isEmpty()) {
+            String imageUrl = fileStorageService.save(immagineFile);
+            newAula.setImageUrl(imageUrl);
+        }
+
+        Aula savedAula = aulaRepository.save(newAula);
+        return new ResponseEntity<>(savedAula, HttpStatus.CREATED);
     }
 
 }
