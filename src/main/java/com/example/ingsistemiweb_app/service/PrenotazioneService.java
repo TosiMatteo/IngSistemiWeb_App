@@ -1,6 +1,5 @@
 package com.example.ingsistemiweb_app.service;
 
-
 import com.example.ingsistemiweb_app.dto.PrenotazioneRequest;
 import com.example.ingsistemiweb_app.model.Aula;
 import com.example.ingsistemiweb_app.model.Prenotazione;
@@ -25,16 +24,24 @@ import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 
+
+
+/**
+ * Servizio di business logic per la gestione delle prenotazioni.
+ * Contiene tutte le regole e le procedure per creare, terminare e gestire le prenotazioni,
+ * garantendo la coerenza dei dati e l'applicazione delle policy del sistema.
+ */
 @Service
 public class PrenotazioneService {
 
+    // Dipendenze verso gli archivi e altri servizi
     private final UserRepository userRepository;
     private final AulaRepository aulaRepository;
     private final PrenotazioneRepository prenotazioneRepository;
     private final EmailSenderService emailSenderService;
     private final ZoneId zonaItalia = ZoneId.of("Europe/Rome");
 
-
+    // Costruttore
     @Autowired
     public PrenotazioneService(UserRepository userRepository,
                                        AulaRepository aulaRepository,
@@ -47,45 +54,35 @@ public class PrenotazioneService {
     }
 
     /**
-     * Termina una prenotazione, convalidando i permessi dell'utente che effettua la richiesta.
-     * Un utente può terminare solo le proprie prenotazioni. Un ADMIN può terminare qualsiasi prenotazione.
-     *
-     * @param prenotazioneId L'ID della prenotazione da terminare.
-     * @param userEmail L'email dell'utente che sta effettuando la richiesta (Studente, Professore o Admin).
-     * @return Il messaggio di successo.
-     * @throws RuntimeException se la prenotazione non esiste.
-     * @throws IllegalArgumentException se l'utente non ha i permessi per terminare la prenotazione
-     * o se la prenotazione non è attiva.
-     * @throws UsernameNotFoundException se l'utente non viene trovato.
+     * Termina una prenotazione, applicando le validazioni sui permessi.
+     * Un utente può terminare solo le proprie prenotazioni. Un AMMINISTRATORE può terminare qualsiasi prenotazione.
+     * L'attributo @Transactional assicura che l'operazione sia "atomica": o va a buon fine, o viene annullata.
      */
     @Transactional
     public String terminaPrenotazione(Long prenotazioneId, String userEmail) {
-        // 1. Trova la prenotazione
+        // 1. RECUPERO DATI: Trova la prenotazione e l'utente che richiede l'azione.
         Prenotazione prenotazione = prenotazioneRepository.findById(prenotazioneId)
                 .orElseThrow(() -> new RuntimeException("Prenotazione non trovata con ID: " + prenotazioneId));
-
-        // 2. Trova l'utente che sta effettuando l'azione
         User requestingUser = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new UsernameNotFoundException("Utente non trovato con email: " + userEmail));
 
-        // 3. Validazioni dei permessi
-        // Un utente (studente/professore) può terminare solo le proprie prenotazioni.
-        // Un AMMINISTRATORE può terminare qualsiasi prenotazione.
-        if (!requestingUser.getRuolo().equals(UserRole.AMMINISTRATORE) &&
-                !prenotazione.getUtente().getId().equals(requestingUser.getId())) {
+        // 2. VALIDAZIONE PERMESSI: L'utente è un admin o il proprietario della prenotazione?
+        boolean isAdmin = requestingUser.getRuolo().equals(UserRole.AMMINISTRATORE);
+        boolean isOwner = prenotazione.getUtente().getId().equals(requestingUser.getId());
+        if (!isAdmin && !isOwner) {
             throw new IllegalArgumentException("Non hai i permessi per terminare questa prenotazione.");
         }
 
-        // Verifica che la prenotazione sia ancora attiva
+        // 3. VALIDAZIONE STATO: La prenotazione è ancora terminabile?a
         if (!prenotazione.isAttiva()) {
             throw new IllegalArgumentException("Questa prenotazione non è più attiva e non può essere terminata.");
         }
 
-        // 4. Esegui la logica di business: termina la prenotazione
+        // 4. ESECUZIONE LOGICA: Imposta la prenotazione come non attiva.
         prenotazione.setAttiva(false);
         prenotazioneRepository.save(prenotazione);
 
-        // 5. Invia l'email di conferma all'utente proprietario della prenotazione
+        // 5. NOTIFICA: Invia un'email di conferma al proprietario della prenotazione.
         User owner = prenotazione.getUtente(); // Ottieni l'utente proprietario della prenotazione
         String destinatario = owner.getEmail();
         String oggetto = "Conferma Annullamento Prenotazione Aula";
@@ -106,17 +103,19 @@ public class PrenotazioneService {
         return "Prenotazione aula terminata con successo.";
     }
 
+    /**
+     * Gestisce la creazione di una nuova prenotazione (sia per studenti che per professori).
+     * Applica un rigoroso protocollo di validazione prima di salvare i dati.
+     */
     @Transactional
     public String creaPrenotazione(PrenotazioneRequest request, String userEmail, PrenotazioneType type) {
-        // 1. Recupero utente
+        // 1. Recupero utente e aula
         User utente = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new UsernameNotFoundException("Utente non trovato con email: " + userEmail));
-
-        // 2. Recupero aula
         Aula aula = aulaRepository.findById(request.getAulaId())
                 .orElseThrow(() -> new IllegalArgumentException("Aula non trovata.")); // Cambiato da RuntimeException a IllegalArgumentException
 
-        // 3. Parsing e validazione date e orari comuni
+        // 2. Parsing e validazione orari (fine > inizio, durata <= 4h)
         LocalDateTime inizio, fine;
         try {
             inizio = OffsetDateTime.parse(request.getInizio()).atZoneSameInstant(zonaItalia).toLocalDateTime();
@@ -134,7 +133,9 @@ public class PrenotazioneService {
             throw new IllegalArgumentException("La durata massima consentita per una prenotazione è di 4 ore.");
         }
 
-        // 4. Validazioni specifiche per tipo di prenotazione (Professore vs Studente)
+        // 3. Validazioni specifiche per ruolo:
+        //      - PROFESSORE: preavviso 2-14 giorni, prenota l'intera capienza.
+        //      - STUDENTE: fascia oraria 08-20, prenota 1 posto.
         int postiDaPrenotare;
         if (type == PrenotazioneType.PROFESSORE_FULL_ROOM) {
             // Validazioni Professore
@@ -163,13 +164,13 @@ public class PrenotazioneService {
             throw new IllegalArgumentException("Tipo di prenotazione non riconosciuto.");
         }
 
-        // 5. Controllo disponibilità aula
+        // 4. Controllo disponibilità: verifica che ci siano abbastanza posti liberi.
         long postiAttualmenteOccupati = prenotazioneRepository.sumPostiOverlapping(aula, inizio, fine);
         if (postiAttualmenteOccupati + postiDaPrenotare > aula.getCapienza()) {
             throw new IllegalArgumentException("Aula non disponibile o non ci sono abbastanza posti liberi nell'orario selezionato.");
         }
 
-        // 6. Verifica sovrapposizione con altre prenotazioni dello stesso utente
+        // 5. Controllo conflitti: verifica che l'utente non abbia altre prenotazioni sovrapposte.
         List<Prenotazione> propriePrenotazioniAttive = prenotazioneRepository.findByUtenteEmailAndAttivaTrue(userEmail);
         boolean conflittoConPropriePrenotazioni = propriePrenotazioniAttive.stream()
                 .anyMatch(p -> !(p.getFine().isBefore(inizio) || p.getInizio().isAfter(fine)));
@@ -208,30 +209,33 @@ public class PrenotazioneService {
         return "Prenotazione effettuata, posti rimasti: " + (aula.getCapienza() - nuoviOccupati);
     }
 
+    /**
+     * Gestisce il check-in per le prenotazioni degli studenti.
+     * Il check-in è consentito solo in una finestra temporale di 15 minuti dall'inizio della prenotazione.
+     */
     @Transactional
     public String effettuaCheckIn(Long prenotazioneId, String userEmail) {
+        // 1. Recupero prenotazione
         Prenotazione prenotazione = prenotazioneRepository.findById(prenotazioneId)
                 .orElseThrow(() -> new RuntimeException("Prenotazione non trovata con ID: " + prenotazioneId));
 
-        // Validazione: solo lo studente proprietario può fare il check-in
+        // 2. Validazione permessi (solo il proprietario) e ruolo (solo studenti)
         if (!prenotazione.getUtente().getEmail().equals(userEmail)) {
             throw new IllegalArgumentException("Non hai i permessi per effettuare il check-in per questa prenotazione.");
         }
-
-        // Validazione: deve essere una prenotazione studente
         if(prenotazione.getUtente().getRuolo() != UserRole.STUDENTE) {
             throw new IllegalArgumentException("Il check-in è disponibile solo per gli studenti.");
         }
 
+        // 3. Validazione stato (già fatto? Prenotazione attiva?)
         if (prenotazione.isCheckedIn()) {
             return "Check-in già effettuato per questa prenotazione.";
         }
-
         if (!prenotazione.isAttiva()) {
             throw new IllegalArgumentException("La prenotazione non è più attiva.");
         }
 
-        // Validazione della finestra temporale per il check-in
+        // 4. Validazione finestra temporale (non prima dell'inizio, non dopo 15 minuti)
         LocalDateTime now = LocalDateTime.now(zonaItalia);
         LocalDateTime inizioPrenotazione = prenotazione.getInizio();
         LocalDateTime fineFinestraCheckIn = inizioPrenotazione.plusMinutes(15);
@@ -244,13 +248,16 @@ public class PrenotazioneService {
             throw new IllegalArgumentException("La finestra di check-in di 15 minuti è scaduta.");
         }
 
-        // Se tutte le validazioni passano, effettua il check-in
+        // 5. Aggiornamento stato check-in
         prenotazione.setCheckedIn(true);
         prenotazioneRepository.save(prenotazione);
 
         return "Check-in effettuato con successo!";
     }
 
+    /**
+     * Fornisce un elenco paginato delle prenotazioni di un utente, filtrato per stato (attive/terminate/tutte).
+     */
     public Page<Prenotazione> getPrenotazioniUtente(String userEmail, String stato, Pageable pageable) {
         User utente = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new UsernameNotFoundException("Utente non trovato"));

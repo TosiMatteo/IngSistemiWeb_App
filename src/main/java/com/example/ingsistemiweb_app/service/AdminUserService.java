@@ -12,11 +12,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-
+/**
+ * Servizio di business logic per le operazioni di amministrazione sugli utenti.
+ */
 @Service
 public class AdminUserService {
 
+    // Dipendenze
     @Autowired
     private UserRepository userRepository;
 
@@ -29,6 +31,9 @@ public class AdminUserService {
     @Autowired
     private EmailSenderService emailSenderService;
 
+    /**
+     * Trova utenti con filtri per ruolo e termine di ricerca.
+     */
     public Page<User> findUsers(String ruoloFilter, String searchTerm, Pageable pageable) {
         UserRole ruolo = null;
         if (ruoloFilter != null && !ruoloFilter.equalsIgnoreCase("tutti")) {
@@ -41,11 +46,15 @@ public class AdminUserService {
         return userRepository.findByRuoloAndSearchTerm(ruolo, searchTerm, pageable);
     }
 
+    /**
+     * Aggiorna i dati di un utente, con una protezione per gli account admin.
+     */
     @Transactional
     public User updateUser(Long userId, AdminUserUpdateDTO userData) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Utente non trovato con ID: " + userId));
 
+        // REGOLA DI SICUREZZA: Impedisce la modifica di altri admin da questa interfaccia.
         if (user.getRuolo() == UserRole.AMMINISTRATORE) {
             throw new IllegalArgumentException("Gli account amministratore non possono essere modificati da questa interfaccia.");
         }
@@ -78,24 +87,26 @@ public class AdminUserService {
         return updatedUser;
     }
 
+    /**
+     * Elimina un utente, annullando prima le sue prenotazioni attive per mantenere la coerenza dei dati.
+     */
     @Transactional
     public void deleteUser(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Utente non trovato con ID: " + userId));
 
+        // REGOLA DI SICUREZZA: Impedisce l'eliminazione di un account admin.
         if (user.getRuolo() == UserRole.AMMINISTRATORE) {
             throw new IllegalArgumentException("Un account amministratore non può essere eliminato.");
         }
 
-        // Gestione delle dipendenze: annulla le prenotazioni attive dell'utente prima di eliminarlo
+        // AZIONE PRELIMINARE: Annulla tutte le prenotazioni attive dell'utente prima di eliminarlo.
         prenotazioneRepository.findByUtenteAndAttiva(user, true).forEach(p -> {
             p.setAttiva(false);
             prenotazioneRepository.save(p);
         });
 
-        // Potresti voler anonimizzare le prenotazioni passate invece di avere problemi di foreign key
-        // Esempio: prenotazioneRepository.findByUtente(user).forEach(p -> p.setUtente(null));
-
+        // Eliminazione
         userRepository.delete(user);
 
         // Invia email di notifica

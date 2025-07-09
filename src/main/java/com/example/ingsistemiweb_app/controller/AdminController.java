@@ -23,114 +23,116 @@ import java.time.LocalDateTime; // Per gestire data e ora
 import java.util.List; // Utilizzato per liste di oggetti
 
 /**
- * Controller RESTful per la gestione amministrativa delle prenotazioni.
- * Questo controller è dedicato alle operazioni che gli amministratori possono eseguire sulle prenotazioni.
- * Fornisce endpoint per:
- * - Visualizzare le prenotazioni filtrate per aula e data.
- * - Terminare una prenotazione (operazione di controllo amministrativo).
+ * Controller RESTful per le operazioni di amministrazione.
+ * Funge da "sportello" per le richieste provenienti dall'interfaccia web dell'amministratore,
+ * delegando la logica di business ai servizi specializzati.
  */
-@RestController // Indica a Spring che questa classe è un controller RESTful, i cui metodi restituiscono direttamente il corpo della risposta (solitamente JSON).
-@RequestMapping("/api/admin") // Mappa tutte le richieste che iniziano con "/api/admin" a questo controller.
+@RestController
+@RequestMapping("/api/admin")
 public class AdminController {
 
-    @Autowired // Inietta l'istanza di PrenotazioneRepository per interagire con il database delle prenotazioni.
-    private PrenotazioneRepository prenotazioneRepository;
+    // --- DIPENDENZE INIETTATE ---
+    // Spring inietta automaticamente le istanze dei servizi e repository necessari.
 
     @Autowired
-    private PrenotazioneService prenotazioneService;
+    private PrenotazioneRepository prenotazioneRepository; // Accesso diretto all'archivio prenotazioni per query semplici.
 
     @Autowired
-    private AdminUserService adminUserService;
+    private PrenotazioneService prenotazioneService; // Servizio con le regole di business per le prenotazioni.
+
+    @Autowired
+    private AdminUserService adminUserService; // Servizio per la gestione degli utenti.
+
+
+    // --- ENDPOINT GESTIONE PRENOTAZIONI ---
 
     /**
-     * Recupera le prenotazioni di un'aula specifica per una determinata data.
-     * Mappa le richieste GET a "/admin/prenotazioni".
-     *
-     * @param aulaId L'ID dell'aula per cui filtrare le prenotazioni (obbligatorio).
-     * @param data La data di interesse nel formato ISO (YYYY-MM-DD), estratta dai parametri della richiesta (obbligatorio).
-     * `@DateTimeFormat(iso = DateTimeFormat.ISO.DATE)` assicura il corretto parsing della stringa data.
-     * @return Una lista di oggetti `Prenotazione` (sia attive che non attive) per l'aula specificata e all'interno dell'intervallo di tempo della data fornita.
-     * @apiNote L'endpoint considera l'intera giornata (dalle 00:00:00 del giorno `data` alle 23:59:59 del giorno `data`).
-     * @example GET /admin/prenotazioni?aulaId=1&data=2023-06-15
+     * Recupera le prenotazioni per un'aula e una data specifiche.
+     * @param aulaId ID dell'aula.
+     * @param data Data di interesse (formato YYYY-MM-DD).
+     * @return Lista delle prenotazioni trovate.
      */
-    @GetMapping("/prenotazioni") // Mappa le richieste GET a "/admin/prenotazioni".
+    @GetMapping("/prenotazioni")
     public List<Prenotazione> getPrenotazioniByAulaAndDate(
-            @RequestParam Long aulaId, // Ottiene l'ID dell'aula dal parametro di query "aulaId".
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data // Ottiene la data dal parametro "data" e la converte in LocalDate.
-    ) {
-        // Calcola l'inizio della giornata (00:00:00) per la data specificata.
+            @RequestParam Long aulaId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data) {
+
         LocalDateTime startOfDay = data.atStartOfDay();
-        // Calcola l'inizio del giorno successivo (00:00:00) per definire la fine dell'intervallo.
-        // Questo approccio è comune per includere tutti gli eventi di una singola giornata.
         LocalDateTime endOfDay = data.plusDays(1).atStartOfDay();
 
-        // Esegue una query al repository per trovare tutte le prenotazioni relative all'aula specificata
-        // che iniziano all'interno dell'intervallo temporale definito.
+        // Query diretta al repository per una semplice operazione di lettura.
         return prenotazioneRepository.findByAulaIdAndInizioBetween(aulaId, startOfDay, endOfDay);
     }
 
     /**
-     * Termina una prenotazione specifica. Questa operazione è riservata agli amministratori.
-     * Delega la logica di business e le validazioni al PrenotazioneService.
-     *
-     * @param id L'ID della prenotazione da terminare.
-     * @param principal L'utente autenticato che esegue l'azione (dovrebbe essere un ADMIN).
-     * @return `ResponseEntity<String>` con il risultato dell'operazione.
+     * Termina una prenotazione esistente. Operazione riservata agli amministratori.
+     * @param id ID della prenotazione da terminare.
+     * @param principal Oggetto che rappresenta l'utente autenticato (l'admin).
+     * @return ResponseEntity con un messaggio di successo o di errore.
      */
     @PostMapping("/prenotazioni/{id}/termina")
-    public ResponseEntity<String> terminaPrenotazioneAdmin(
-            @PathVariable Long id,
-            Principal principal) {
+    public ResponseEntity<String> terminaPrenotazioneAdmin(@PathVariable Long id, Principal principal) {
         try {
-            // Chiama il metodo generico del servizio, passando l'ID della prenotazione
-            // e l'email dell'utente autenticato (che qui sarà l'Admin).
+            // Delega tutta la logica (validazioni, permessi, etc.) al servizio specializzato.
             String successMessage = prenotazioneService.terminaPrenotazione(id, principal.getName());
-            return ResponseEntity.ok(successMessage); // 200 OK
+            return ResponseEntity.ok(successMessage);
         } catch (UsernameNotFoundException e) {
-            // Questo caso è improbabile per l'Admin già autenticato, ma gestito
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utente autenticato non trovato."); // 401 Unauthorized
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utente non trovato.");
         } catch (IllegalArgumentException e) {
-            // Cattura eccezioni di validazione dal servizio (es. Prenotazione non attiva, permessi)
-            return ResponseEntity.badRequest().body(e.getMessage()); // 400 Bad Request
+            // Errore di validazione (es. prenotazione già terminata).
+            return ResponseEntity.badRequest().body(e.getMessage());
         } catch (RuntimeException e) {
-            // Cattura altre RuntimeException, es. "Prenotazione non trovata"
-            if (e.getMessage().contains("Prenotazione non trovata")) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage()); // 404 Not Found
-            }
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Errore interno del server: " + e.getMessage()); // 500 Internal Server Error
+            // Altri errori (es. prenotazione non esistente).
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
 
-    // Endpoint per ottenere gli utenti
+
+    // --- ENDPOINT GESTIONE UTENTI ---
+
+    /**
+     * Fornisce un elenco paginato e filtrabile di tutti gli utenti.
+     * @param ruolo Filtro opzionale per ruolo (STUDENTE, PROFESSORE).
+     * @param searchTerm Filtro opzionale per cercare per nome, cognome o email.
+     * @param pageable Oggetto per la paginazione e l'ordinamento.
+     * @return Una "pagina" di utenti che corrispondono ai criteri.
+     */
     @GetMapping("/users")
     public Page<User> getAllUsers(
             @RequestParam(required = false) String ruolo,
             @RequestParam(required = false) String searchTerm,
-            @SortDefault(sort = "id", direction = Sort.Direction.ASC) Pageable pageable
-    ) {
+            @SortDefault(sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
         return adminUserService.findUsers(ruolo, searchTerm, pageable);
     }
 
-    // Endpoint per aggiornare un utente
+    /**
+     * Aggiorna i dati di un utente specifico.
+     * @param id L'ID dell'utente da modificare.
+     * @param userData DTO (Data Transfer Object) con i nuovi dati.
+     * @return L'utente aggiornato.
+     */
     @PutMapping("/users/{id}")
     public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody AdminUserUpdateDTO userData) {
         try {
             User updatedUser = adminUserService.updateUser(id, userData);
             return ResponseEntity.ok(updatedUser);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(null); // O un messaggio di errore più specifico
+            return ResponseEntity.badRequest().body(null);
         }
     }
 
-    // Endpoint per eliminare un utente
+    /**
+     * Elimina un utente dal sistema.
+     * @param id L'ID dell'utente da eliminare.
+     * @return Risposta vuota con stato 204 No Content se l'operazione ha successo.
+     */
     @DeleteMapping("/users/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         try {
             adminUserService.deleteUser(id);
-            return ResponseEntity.noContent().build(); // 204 No Content
+            return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
         }
     }
-
 }
