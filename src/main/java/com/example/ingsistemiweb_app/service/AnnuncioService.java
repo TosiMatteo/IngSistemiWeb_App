@@ -15,6 +15,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+
+/**
+ * Servizio contenente la logica di business per la gestione degli annunci.
+ * Si occupa della creazione, modifica, recupero e notifica relativa agli annunci.
+ */
 @Service
 public class AnnuncioService {
 
@@ -27,8 +32,13 @@ public class AnnuncioService {
     @Autowired
     private EmailSenderService emailSenderService;
 
+    /**
+     * Crea un nuovo annuncio e notifica tutti gli utenti (studenti e professori) via email.
+     * L'operazione è transazionale: se l'invio delle email fallisce, la creazione dell'annuncio viene annullata.
+     */
     @Transactional
     public Annuncio creaAnnuncio(String titolo, String contenuto, String adminEmail) {
+        // 1. Verifica che l'autore sia un amministratore.
         User admin = userRepository.findByEmail(adminEmail)
                 .orElseThrow(() -> new UsernameNotFoundException("Amministratore non trovato con email: " + adminEmail));
 
@@ -36,6 +46,7 @@ public class AnnuncioService {
             throw new IllegalArgumentException("Solo gli amministratori possono pubblicare annunci.");
         }
 
+        // 2. Crea e salva il nuovo annuncio.
         Annuncio annuncio = new Annuncio();
         annuncio.setTitolo(titolo);
         annuncio.setContenuto(contenuto);
@@ -76,19 +87,20 @@ public class AnnuncioService {
         return savedAnnuncio;
     }
 
+    /**
+     * Aggiorna un annuncio esistente.
+     */
     @Transactional
     public Annuncio aggiornaAnnuncio(Long id, String titolo, String contenuto, boolean attivo, String adminEmail) {
+        // Logica per trovare l'annuncio e l'admin, e verificare i permessi.
         Annuncio annuncio = annuncioRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Annuncio non trovato con ID: " + id));
 
         User admin = userRepository.findByEmail(adminEmail)
                 .orElseThrow(() -> new UsernameNotFoundException("Amministratore non trovato con email: " + adminEmail));
 
-        // Assicurati che solo l'amministratore che ha creato l'annuncio o un altro admin possa modificarlo
+        // Assicurati che solo l'amministratore possa modificarlo
         if (admin.getRuolo() != UserRole.AMMINISTRATORE || !annuncio.getAmministratore().equals(admin)) {
-            // Puoi scegliere se permettere a qualsiasi admin di modificare annunci di altri admin o solo al creatore
-            // Qui assumiamo che solo il creatore possa modificare, ma un altro admin può disattivare.
-            // Per semplicità, permettiamo a qualsiasi admin di modificare qui per ora.
             if (admin.getRuolo() != UserRole.AMMINISTRATORE) {
                 throw new IllegalArgumentException("Solo gli amministratori possono modificare annunci.");
             }
@@ -100,6 +112,9 @@ public class AnnuncioService {
         return annuncioRepository.save(annuncio);
     }
 
+    /**
+     * Imposta un annuncio come non attivo.
+     */
     @Transactional
     public void disattivaAnnuncio(Long id, String adminEmail) {
         Annuncio annuncio = annuncioRepository.findById(id)
@@ -116,11 +131,18 @@ public class AnnuncioService {
         annuncioRepository.save(annuncio);
     }
 
+    /**
+     * Restituisce una lista di tutti gli annunci attualmente attivi, ordinati per data di pubblicazione decrescente.
+     * L'attributo readOnly = true è un'ottimizzazione per indicare al database che questa è un'operazione di sola lettura.
+     */
     @Transactional(readOnly = true)
     public List<Annuncio> getAnnunciAttivi() {
         return annuncioRepository.findByAttivoTrueOrderByDataPubblicazioneDesc();
     }
 
+    /**
+     * Restituisce una lista di tutti gli annunci (attivi e non) per l'interfaccia di amministrazione.
+     */
     @Transactional(readOnly = true)
     public List<Annuncio> getAllAnnunciForAdmin(String adminEmail) {
         User admin = userRepository.findByEmail(adminEmail)
@@ -132,12 +154,17 @@ public class AnnuncioService {
         return annuncioRepository.findAll(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "dataPubblicazione"));
     }
 
+    /**
+     * Recupera un singolo annuncio tramite il suo ID.
+     */
     @Transactional(readOnly = true)
     public Optional<Annuncio> getAnnuncioById(Long id) {
         return annuncioRepository.findById(id);
     }
 
-    // Metodo per eliminare un annuncio (opzionale, fai attenzione con le eliminazioni)
+    /**
+     * Elimina fisicamente un annuncio dal database.
+     */
     @Transactional
     public void eliminaAnnuncio(Long id, String adminEmail) {
         Annuncio annuncio = annuncioRepository.findById(id)
