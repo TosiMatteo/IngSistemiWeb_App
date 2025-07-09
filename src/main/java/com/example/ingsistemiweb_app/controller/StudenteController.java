@@ -77,10 +77,8 @@ public class StudenteController {
     public Page<Prenotazione> getPrenotazioniStudente(
             Principal principal,
             @RequestParam(name = "stato", defaultValue = "tutte") String stato,
-            // Aggiungi questa annotazione per impostare l'ordinamento di default
             @SortDefault(sort = "inizio", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        // Il resto del metodo rimane invariato
         return prenotazioneService.getPrenotazioniUtente(principal.getName(), stato, pageable);
     }
 
@@ -160,15 +158,26 @@ public class StudenteController {
         return ResponseEntity.ok("Recensione salvata"); // 200 OK.
     }
 
+    /**
+     * Permette a uno studente di effettuare il check-in per una prenotazione.
+     * Il check-in conferma la presenza dello studente nell'aula prenotata.
+     * 
+     * @param id L'ID della prenotazione per cui effettuare il check-in.
+     * @param principal L'oggetto `Principal` che rappresenta l'utente autenticato (studente).
+     * @return `ResponseEntity<String>` con un messaggio di conferma o errore.
+     */
     @PostMapping("/prenotazioni/{id}/check-in")
     public ResponseEntity<String> checkInPrenotazione(@PathVariable Long id, Principal principal) {
         try {
+            // Delega la logica al servizio, passando l'ID della prenotazione e l'email dell'utente
             String message = prenotazioneService.effettuaCheckIn(id, principal.getName());
-            return ResponseEntity.ok(message);
+            return ResponseEntity.ok(message); // 200 OK
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            // Errori di validazione (es. check-in già effettuato, prenotazione non attiva)
+            return ResponseEntity.badRequest().body(e.getMessage()); // 400 Bad Request
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+            // Prenotazione non trovata o altri errori di runtime
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage()); // 404 Not Found
         }
     }
 }

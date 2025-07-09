@@ -22,32 +22,73 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Controller REST per la gestione delle aule.
+ * Fornisce endpoint per la creazione, visualizzazione, aggiornamento e gestione
+ * delle aule e delle loro disponibilità nel sistema di prenotazione.
+ * Mappa le richieste su "/api/aule".
+ */
 @RestController
 @RequestMapping("/api/aule")
 public class AulaRestController {
 
+    /**
+     * Repository per l'accesso ai dati delle aule.
+     * Consente operazioni CRUD sulle entità Aula.
+     */
     @Autowired
     private AulaRepository aulaRepository;
 
-    @Autowired // Inietta PrenotazioneRepository
+    /**
+     * Repository per l'accesso ai dati delle prenotazioni.
+     * Utilizzato per gestire le prenotazioni associate alle aule.
+     */
+    @Autowired
     private PrenotazioneRepository prenotazioneRepository;
 
-    @Autowired // Inietta EmailSenderService
+    /**
+     * Servizio per l'invio di email agli utenti.
+     * Utilizzato per notificare cambiamenti nelle prenotazioni.
+     */
+    @Autowired
     private EmailSenderService emailSenderService;
 
+    /**
+     * Servizio per la gestione dello storage dei file.
+     * Utilizzato per salvare le immagini delle aule.
+     */
     @Autowired
-    FileStorageService fileStorageService;
+    private FileStorageService fileStorageService;
 
+    /**
+     * Recupera tutte le aule presenti nel sistema.
+     * Mappa le richieste GET a "/api/aule".
+     *
+     * @return Lista contenente tutte le aule disponibili nel sistema.
+     */
     @GetMapping
     public List<Aula> getAllAule() {
         return aulaRepository.findAll();
     }
 
+    /**
+     * Recupera tutte le aule attualmente attive nel sistema.
+     * Mappa le richieste GET a "/api/aule/aule/attive".
+     *
+     * @return Lista contenente solo le aule attive (con il flag attiva = true).
+     */
     @GetMapping("/aule/attive")
     public List<Aula> getAllAuleAttive() {
         return aulaRepository.findByAttivaTrue();
     }
 
+    /**
+     * Recupera una specifica aula tramite il suo ID.
+     * Mappa le richieste GET a "/api/aule/{id}".
+     *
+     * @param id L'identificativo dell'aula da recuperare.
+     * @return ResponseEntity contenente l'aula se trovata, o status 404 se non trovata.
+     */
     @GetMapping("/{id}")
     public ResponseEntity<Aula> getAula(@PathVariable Long id) {
         return aulaRepository.findById(id)
@@ -55,46 +96,59 @@ public class AulaRestController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    /**
+     * Aggiorna una specifica aula identificata dall'ID.
+     * Mappa le richieste PUT a "/api/aule/{id}".
+     * Se l'aula viene disattivata, termina automaticamente tutte le prenotazioni attive
+     * e invia email di notifica agli utenti interessati.
+     * 
+     * @param id L'identificativo dell'aula da aggiornare.
+     * @param updatedAula L'oggetto Aula con i dati aggiornati.
+     * @return ResponseEntity con messaggio di conferma o errore.
+     */
     @PutMapping("/{id}")
-    @Transactional // Aggiungi @Transactional per assicurare l'atomicità delle operazioni
+    @Transactional // Assicura l'atomicità delle operazioni in caso di più aggiornamenti al database
     public ResponseEntity<String> updateAula(@PathVariable Long id, @RequestBody Aula updatedAula) {
         return aulaRepository.findById(id).map(aula -> {
-            // Controlla se l'aula sta per essere disattivata
-            boolean wasActive = aula.isAttiva();
-            boolean willBeInactive = !updatedAula.isAttiva();
+            // Controlla se l'aula sta per essere disattivata confrontando lo stato attuale con quello richiesto
+            boolean wasActive = aula.isAttiva();         // Stato attuale: attiva?
+            boolean willBeInactive = !updatedAula.isAttiva(); // Stato futuro: sarà disattivata?
 
-            // Aggiorna i campi dell'aula
-            aula.setNome(updatedAula.getNome());
-            aula.setCapienza(updatedAula.getCapienza());
-            aula.setRisorse(updatedAula.getRisorse());
-            aula.setAttiva(updatedAula.isAttiva()); // Imposta il nuovo stato
+            // Aggiorna tutti i campi dell'aula con i valori forniti nella richiesta
+            aula.setNome(updatedAula.getNome());          // Aggiorna il nome
+            aula.setCapienza(updatedAula.getCapienza());   // Aggiorna la capienza
+            aula.setRisorse(updatedAula.getRisorse());     // Aggiorna la lista delle risorse disponibili
+            aula.setAttiva(updatedAula.isAttiva());        // Aggiorna lo stato di attivazione
 
-            aulaRepository.save(aula); // Salva l'aula aggiornata
+            aulaRepository.save(aula); // Persiste le modifiche nel database
 
-            // Se l'aula è stata disattivata, termina le prenotazioni attive e invia le email
+            // Se l'aula passa da stato attivo a inattivo, gestisci le prenotazioni esistenti
             if (wasActive && willBeInactive) {
+                // Recupera tutte le prenotazioni attive associate all'aula
                 List<Prenotazione> prenotazioniDaTerminare = prenotazioneRepository.findByAulaAndAttivaTrue(aula);
 
+                // Processa ogni prenotazione attiva
                 for (Prenotazione prenotazione : prenotazioniDaTerminare) {
-                    prenotazione.setAttiva(false); // Termina la prenotazione
-                    // Puoi impostare la data di fine della prenotazione all'ora corrente
-                    prenotazione.setFine(LocalDateTime.now());
-                    prenotazioneRepository.save(prenotazione); // Salva la prenotazione terminata
+                    prenotazione.setAttiva(false);             // Marca la prenotazione come non più attiva
+                    prenotazione.setFine(LocalDateTime.now()); // Imposta la fine della prenotazione all'istante corrente
+                    prenotazioneRepository.save(prenotazione);  // Persiste le modifiche alla prenotazione
 
-                    // Invia email all'utente
+                    // Prepara e invia un'email di notifica all'utente della prenotazione
                     User utente = prenotazione.getUtente();
                     if (utente != null) {
-                        String destinatario = utente.getEmail();
-                        String oggetto = "Avviso: Prenotazione Terminata - Aula Disattivata";
+                        // Prepara i dettagli dell'email
+                        String destinatario = utente.getEmail();  // Indirizzo email dell'utente
+                        String oggetto = "Avviso: Prenotazione Terminata - Aula Disattivata"; // Oggetto dell'email
+                        // Corpo dell'email formattato con i dettagli della prenotazione
                         String testo = String.format(
                                 """
                                         Gentile %s,
-                                        
+
                                         La informiamo che la sua prenotazione dell'aula '%s' per il giorno %s dalle %s alle %s è stata terminata.
                                         Questo è dovuto alla disattivazione dell'aula.
-                                        
+
                                         Ci scusiamo per il disagio.
-                                        
+
                                         Cordiali saluti,
                                         Il team di Gestione Aule""",
                                 utente.getNome(),
@@ -182,8 +236,15 @@ public class AulaRestController {
     }
 
     /**
-     * Crea una nuova aula con un'immagine allegata.
-     * Mappa richieste POST di tipo multipart/form-data.
+     * Crea una nuova aula con possibilità di allegare un'immagine.
+     * Mappa richieste POST di tipo multipart/form-data a "/api/aule".
+     * 
+     * @param nome Nome dell'aula da creare.
+     * @param capienza Numero massimo di posti disponibili nell'aula.
+     * @param risorse Elenco di risorse dell'aula, fornite come stringa separata da virgole.
+     * @param attiva Flag che indica se l'aula è attiva e disponibile per prenotazioni.
+     * @param immagineFile File immagine opzionale che rappresenta l'aula.
+     * @return ResponseEntity contenente l'aula creata e lo status HTTP 201 (Created).
      */
     @PostMapping(consumes = "multipart/form-data")
     public ResponseEntity<Aula> createAulaWithImage(
@@ -193,19 +254,22 @@ public class AulaRestController {
             @RequestParam("attiva") boolean attiva,
             @RequestParam(value = "immagineFile", required = false) MultipartFile immagineFile) {
 
+        // Crea una nuova istanza dell'entità Aula
         Aula newAula = new Aula();
-        newAula.setNome(nome);
-        newAula.setCapienza(capienza);
-        newAula.setRisorse(java.util.Arrays.asList(risorse.split(",")));
-        newAula.setAttiva(attiva);
+        newAula.setNome(nome);                                     // Imposta il nome dell'aula
+        newAula.setCapienza(capienza);                             // Imposta la capienza massima
+        newAula.setRisorse(java.util.Arrays.asList(risorse.split(","))); // Converte la stringa risorse in lista
+        newAula.setAttiva(attiva);                                // Imposta lo stato di attivazione
 
-        // Se un file immagine è stato caricato, salvalo e imposta l'URL
+        // Gestione dell'immagine dell'aula (opzionale)
         if (immagineFile != null && !immagineFile.isEmpty()) {
-            String imageUrl = fileStorageService.save(immagineFile);
-            newAula.setImageUrl(imageUrl);
+            String imageUrl = fileStorageService.save(immagineFile); // Salva l'immagine e ottieni l'URL
+            newAula.setImageUrl(imageUrl);                         // Associa l'URL dell'immagine all'aula
         }
 
+        // Persiste l'aula nel database
         Aula savedAula = aulaRepository.save(newAula);
+        // Restituisce l'aula creata con status 201 (Created)
         return new ResponseEntity<>(savedAula, HttpStatus.CREATED);
     }
 

@@ -229,12 +229,26 @@ public class PageController {
         return "redirect:/login?registrato=true";
     }
 
+    /**
+     * Gestisce le richieste per la pagina di gestione degli annunci.
+     * Accessibile solo agli utenti con ruolo AMMINISTRATORE.
+     *
+     * @return Il nome della vista ("adminAnnunci.html") da renderizzare.
+     */
     @GetMapping("/admin/annunci")
     @PreAuthorize("hasRole('AMMINISTRATORE')")
     public String gestioneAnnunci() {
         return "adminAnnunci"; // Nome del file HTML senza estensione
     }
 
+    /**
+     * Gestisce le richieste per la pagina di gestione degli utenti.
+     * Mostra l'interfaccia per la gestione degli utenti del sistema.
+     *
+     * @param model Modello per passare dati alla vista.
+     * @param principal Oggetto Principal che rappresenta l'utente autenticato.
+     * @return Il nome della vista ("admin-users.html") da renderizzare.
+     */
     @GetMapping("/admin/users") // nuovo controller per la pagina di gestione utenti
     public String showUserManagementPage(Model model, Principal principal) {
         model.addAttribute("username", principal.getName());
