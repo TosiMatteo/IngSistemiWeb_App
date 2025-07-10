@@ -13,6 +13,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+
+/**
+ * Controller RESTful per la gestione degli annunci.
+ * Funge da punto di ingresso per le richieste HTTP provenienti dall'interfaccia utente,
+ * gestendo l'autenticazione e la validazione di base prima di delegare al servizio.
+ */
 @RestController
 @RequestMapping("/api/annunci")
 public class AnnuncioController {
@@ -20,7 +26,10 @@ public class AnnuncioController {
     @Autowired
     private AnnuncioService annuncioService;
 
-    // Endpoint per gli amministratori: creazione di un nuovo annuncio
+    /**
+     * Endpoint per la creazione di un nuovo annuncio.
+     * Accesso limitato ai soli amministratori tramite @PreAuthorize.
+     */
     @PostMapping
     @PreAuthorize("hasRole('AMMINISTRATORE')")
     public ResponseEntity<Annuncio> creaAnnuncio(@RequestBody Map<String, Object> payload, Authentication authentication) {
@@ -28,7 +37,7 @@ public class AnnuncioController {
             String titolo = (String) payload.get("titolo");
             String contenuto = (String) payload.get("contenuto");
 
-            // --- Controlli di validazione ---
+            // Validazione preliminare dei dati in ingresso.
             if (titolo == null || titolo.trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(null);
             }
@@ -42,7 +51,7 @@ public class AnnuncioController {
             if (contenuto.length() > 1000) {
                 return ResponseEntity.badRequest().body(null);
             }
-            // --- Fine controlli di validazione ---
+            // Fine controlli di validazione
 
             Annuncio nuovoAnnuncio = annuncioService.creaAnnuncio(titolo, contenuto, authentication.getName());
             return ResponseEntity.status(HttpStatus.CREATED).body(nuovoAnnuncio);
@@ -58,11 +67,15 @@ public class AnnuncioController {
     }
 
 
-    // Endpoint per gli amministratori: aggiornamento di un annuncio esistente
+    /**
+     * Endpoint per l'aggiornamento di un annuncio esistente.
+     * Accesso limitato ai soli amministratori.
+     */
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('AMMINISTRATORE')")
     public ResponseEntity<Annuncio> aggiornaAnnuncio(@PathVariable Long id, @RequestBody Map<String, Object> payload, Authentication authentication) {
         try {
+            // Estrae i dati dal payload, delega la logica di aggiornamento al servizio.
             String titolo = (String) payload.get("titolo");
             String contenuto = (String) payload.get("contenuto");
             Boolean attivo = (Boolean) payload.getOrDefault("attivo", true);
@@ -76,7 +89,10 @@ public class AnnuncioController {
         }
     }
 
-    // Endpoint per gli amministratori: disattivazione di un annuncio
+    /**
+     * Endpoint per la disattivazione (archiviazione) di un annuncio.
+     * L'annuncio non viene eliminato, ma reso non visibile al pubblico.
+     */
     @PostMapping("/{id}/disattiva")
     @PreAuthorize("hasRole('AMMINISTRATORE')")
     public ResponseEntity<?> disattivaAnnuncio(@PathVariable Long id, Authentication authentication) {
@@ -90,14 +106,20 @@ public class AnnuncioController {
         }
     }
 
-    // Endpoint per tutti gli utenti (anche non autenticati): ottenere annunci attivi
+    /**
+     * Endpoint pubblico per ottenere la lista degli annunci attivi.
+     * Accessibile da chiunque, anche utenti non autenticati.
+     */
     @GetMapping("/attivi")
     public ResponseEntity<List<Annuncio>> getAnnunciAttivi() {
         List<Annuncio> annunci = annuncioService.getAnnunciAttivi();
         return ResponseEntity.ok(annunci);
     }
 
-    // Endpoint per gli amministratori: ottenere tutti gli annunci (anche non attivi)
+    /**
+     * Endpoint per gli amministratori per visualizzare tutti gli annunci, inclusi quelli non attivi.
+     * Utile per la gestione e la revisione dell'archivio storico.
+     */
     @GetMapping("/admin/all")
     @PreAuthorize("hasRole('AMMINISTRATORE')")
     public ResponseEntity<List<Annuncio>> getAllAnnunciForAdmin(Authentication authentication) {
@@ -105,7 +127,9 @@ public class AnnuncioController {
         return ResponseEntity.ok(annunci);
     }
 
-    // Endpoint per recuperare un singolo annuncio per l'admin
+    /**
+     * Endpoint per recuperare un singolo annuncio per la visualizzazione/modifica da parte dell'admin.
+     */
     @GetMapping("/admin/{id}")
     @PreAuthorize("hasRole('AMMINISTRATORE')")
     public ResponseEntity<?> getAnnuncioByIdForAdmin(@PathVariable Long id) {
@@ -120,7 +144,10 @@ public class AnnuncioController {
         }
     }
 
-    // Endpoint per gli amministratori: eliminare un annuncio
+    /**
+     * Endpoint per l'eliminazione fisica di un annuncio.
+     * Operazione distruttiva, riservata agli amministratori.
+     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('AMMINISTRATORE')")
     public ResponseEntity<?> eliminaAnnuncio(@PathVariable Long id, Authentication authentication) {

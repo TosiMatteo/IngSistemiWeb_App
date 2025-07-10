@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RestController; // Combina @Contr
 public class EmailController {
 
     // Iniezione della dipendenza per il servizio di invio email.
-    // L'uso di `final` con l'iniezione tramite costruttore è una best practice.
     private final EmailSenderService emailSenderService;
 
     /**

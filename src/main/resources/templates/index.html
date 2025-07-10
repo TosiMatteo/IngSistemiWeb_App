@@ -1,56 +1,54 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="it">
 <head>
-    <!-- Meta tags per configurazione base della pagina -->
+    <!-- Meta tags essenziali per la configurazione della pagina -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Homepage</title>
 
-    <!-- Framework CSS Bulma per lo stile responsive -->
+    <!-- Fogli di stile CSS -->
     <link rel="stylesheet" th:href="@{/css/bulma/css/bulma.css}">
-    <!-- Stili personalizzati per il carosello -->
     <link rel="stylesheet" th:href="@{/css/carosello.css}">
 
 </head>
 <body>
 
-<!-- Inclusione dell'header comune da template fragment -->
+<!-- Header comune -->
 <div th:replace="~{fragments/header :: header}"></div>
 
 <hr style="height: 3px; background-color: #3e77c1; border: none; margin: 0;">
 
-<!-- Inclusione della navbar comune da template fragment -->
+<!-- Navbar di navigazione -->
 <div th:replace="~{fragments/navbar :: navbar}"></div>
 
 <hr style="height: 3px; background-color: #3e77c1; border: none; margin: 0;">
 
-<!-- Sezione principale della pagina -->
+<!-- Sezione principale con titolo e descrizione -->
 <section class="section">
     <div class="container">
-        <!-- Titolo e sottotitolo della pagina -->
         <h1 class="title is-4">Benvenuto nel sistema di prenotazione aule studio</h1>
         <p class="subtitle is-6">Prenota facilmente eseguendo il login al tuo account o registrati</p>
     </div>
-    <hr> <!-- Linea separatrice visiva -->
+    <hr>
 
-    <!-- Script per passare i dati delle aule dal backend a JavaScript -->
+    <!-- Inizializzazione dati aule dal backend -->
     <script th:inline="javascript">
         /*<![CDATA[*/
-        const aule = /*[[${aule}]]*/ []; // Inizializza l'array con i dati delle aule dal controller Spring
+        const aule = /*[[${aule}]]*/ []; // Dati aule dal controller Spring
         /*]]>*/
     </script>
 
-    <!-- Contenitore principale del carosello -->
+    <!-- Carosello aule -->
     <div id="carousel-container">
         <div class="columns">
-            <!-- Colonna sinistra: immagine dell'aula -->
+            <!-- Visualizzazione immagine aula -->
             <div class="column is-half">
                 <figure class="image aula-img-wrapper">
                     <img id="aula-image" src="/images/aulaAlpha.jpg" alt="Immagine aula">
                 </figure>
             </div>
 
-            <!-- Colonna destra: dettagli dell'aula -->
+            <!-- Informazioni dettagliate aula -->
             <div class="column">
                 <h3 id="aula-nome">Caricamento...</h3>
                 <div class="content">
@@ -63,7 +61,7 @@
             </div>
         </div>
 
-        <!-- Pulsanti di navigazione del carosello -->
+        <!-- Controlli navigazione carosello -->
         <div class="buttons is-centered mt-4">
             <button class="button is-primary" onclick="prevAula()">← Precedente</button>
             <button class="button is-primary" onclick="nextAula()">Successiva →</button>
@@ -71,7 +69,8 @@
     </div>
 </section>
 
-<hr> <!-- Linea separatrice visiva -->
+<hr>
+<!-- Sezione annunci -->
 <section class="section" id="annunciSection">
     <div class="container">
         <h2 class="title is-4">Annunci Importanti</h2>
@@ -81,14 +80,14 @@
     </div>
 </section>
 
-<!-- Inclusione del footer comune da template fragment -->
+<!-- Footer comune -->
 <div th:replace="~{fragments/footer :: footer}"></div>
 
+<!-- Librerie JavaScript esterne -->
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-
-<!-- Importa FontAwesome per le icone -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
-<!-- Importa lo script JavaScript per la gestione del carosello -->
+
+<!-- Script applicazione -->
 <script th:src="@{/javascript/homedisplayaule.js}"></script>
 <script th:src="@{/javascript/homedisplayannunci.js}"></script>
 

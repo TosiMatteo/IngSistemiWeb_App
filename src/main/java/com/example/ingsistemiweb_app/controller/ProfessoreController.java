@@ -33,76 +33,86 @@ public class ProfessoreController {
     private PrenotazioneService prenotazioneService;
 
     /**
-     * Permette a un professore di prenotare un'intera aula.
+     * Permette a un professore di prenotare un'intera aula per un determinato periodo.
      * La prenotazione fallisce se ci sono prenotazioni attive (di studenti o altri professori)
-     * che si sovrappongono all'intervallo richiesto.
+     * che si sovrappongono all'intervallo richiesto. Questo endpoint gestisce la creazione
+     * di prenotazioni di tipo PROFESSORE_FULL_ROOM, che occupano tutti i posti dell'aula.
      *
-     * @param request Oggetto PrenotazioneRequest contenente i dettagli della prenotazione.
-     * @param principal L'utente autenticato (professore).
-     * @return ResponseEntity con un messaggio di successo o errore.
+     * @param request Oggetto PrenotazioneRequest contenente i dettagli della prenotazione (aula, orario di inizio e fine).
+     * @param principal L'oggetto `Principal` che rappresenta l'utente autenticato (professore).
+     * @return ResponseEntity con un messaggio di successo o un messaggio di errore appropriato.
+     * @throws UsernameNotFoundException Se l'utente autenticato non viene trovato nel sistema.
+     * @throws IllegalArgumentException Se ci sono errori di validazione (es. aula non disponibile).
+     * @throws Exception Per altri errori generici durante il processo di prenotazione.
      */
     @PostMapping("/prenotazioni")
     public ResponseEntity<String> prenotaAulaProfessore(
             @RequestBody PrenotazioneRequest request,
             Principal principal) {
         try {
-            // Delega la logica al servizio, specificando il tipo di prenotazione
+            // Delega la logica al servizio, specificando il tipo di prenotazione come PROFESSORE_FULL_ROOM
+            // che indica la prenotazione dell'intera aula da parte di un professore
             String successMessage = prenotazioneService.creaPrenotazione(request, principal.getName(), PrenotazioneType.PROFESSORE_FULL_ROOM);
-            return ResponseEntity.ok(successMessage);
+            return ResponseEntity.ok(successMessage); // 200 OK con messaggio di successo
         } catch (UsernameNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Errore di autenticazione: " + e.getMessage());
+            // L'utente autenticato non è stato trovato nel sistema
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Errore di autenticazione: " + e.getMessage()); // 401 Unauthorized
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            // Errori di validazione (es. aula non disponibile, orari non validi, sovrapposizioni)
+            return ResponseEntity.badRequest().body(e.getMessage()); // 400 Bad Request
         } catch (Exception e) {
-            // Errore generico, ad esempio problemi di database o di invio email
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Si è verificato un errore interno: " + e.getMessage());
+            // Errori generici non previsti (es. problemi di database, errori di sistema)
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Si è verificato un errore interno: " + e.getMessage()); // 500 Internal Server Error
         }
     }
 
     /**
-     * Recupera tutte le prenotazioni dello studente autenticato.
-     * Mappa le richieste GET a "/api/student/prenotazioni".
+     * Recupera tutte le prenotazioni del professore autenticato.
+     * Mappa le richieste GET a "/api/professore/prenotazioni".
      *
-     * @param principal Oggetto `Principal` contenente l'identità dell'utente autenticato.
-     * @return Una lista di oggetti `Prenotazione` appartenenti allo studente corrente, ordinate (presumibilmente per data/ora di inizio).
+     * @param principal Oggetto `Principal` contenente l'identità dell'utente autenticato (professore).
+     * @param stato Parametro opzionale per filtrare le prenotazioni per stato ("attive", "terminate", "tutte").
+     * @param pageable Oggetto per la paginazione e l'ordinamento dei risultati.
+     * @return Una pagina di oggetti `Prenotazione` appartenenti al professore corrente, ordinate per data/ora di inizio in ordine decrescente.
      */
     @GetMapping("/prenotazioni")
     public Page<Prenotazione> getPrenotazioniProfessore(
             Principal principal,
             @RequestParam(name = "stato", defaultValue = "tutte") String stato,
-            // Aggiungi la stessa annotazione anche qui
             @SortDefault(sort = "inizio", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        // Il resto del metodo rimane invariato
+        // Delega al servizio la logica di recupero delle prenotazioni
         return prenotazioneService.getPrenotazioniUtente(principal.getName(), stato, pageable);
     }
 
     /**
-     * Permette a un professore di annullare una propria prenotazione di aula.
-     * Delega la logica al PrenotazioneProfessoreService.
+     * Permette a un professore di annullare (terminare) una propria prenotazione di aula.
+     * Questo endpoint verifica che la prenotazione esista, appartenga al professore autenticato,
+     * e sia in uno stato che ne permetta la terminazione. La logica di business è delegata
+     * al PrenotazioneService.
      *
      * @param id L'ID della prenotazione da annullare.
-     * @param principal L'utente autenticato (professore).
-     * @return ResponseEntity con un messaggio di successo o errore.
+     * @param principal L'oggetto `Principal` che rappresenta l'utente autenticato (professore).
+     * @return ResponseEntity con un messaggio di successo o un messaggio di errore appropriato.
      */
     @PostMapping("/prenotazioni/{id}/termina")
     public ResponseEntity<String> terminaPrenotazioneProfessore(
             @PathVariable Long id,
             Principal principal) {
         try {
-            // Delega la logica al servizio
+            // Delega la logica al servizio, passando l'ID della prenotazione e l'email del professore
             String successMessage = prenotazioneService.terminaPrenotazione(id, principal.getName());
-            return ResponseEntity.ok(successMessage);
+            return ResponseEntity.ok(successMessage); // 200 OK con messaggio di successo
         } catch (UsernameNotFoundException e) {
-            // L'utente autenticato non è stato trovato (situazione insolita ma gestita)
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utente autenticato non trovato.");
+            // L'utente autenticato non è stato trovato nel sistema (situazione rara ma possibile)
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utente autenticato non trovato."); // 401 Unauthorized
         } catch (IllegalArgumentException e) {
-            // Errore di validazione o logica di business (es. Prenotazione non tua, già terminata)
-            return ResponseEntity.badRequest().body(e.getMessage());
+            // Errori di validazione o logica di business (es. prenotazione non appartiene all'utente, 
+            // prenotazione già terminata, ecc.)
+            return ResponseEntity.badRequest().body(e.getMessage()); // 400 Bad Request
         } catch (RuntimeException e) {
-            // Errore generico (es. Prenotazione non trovata)
-            // Puoi differenziare meglio le eccezioni nel servizio se vuoi status code diversi
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Errore interno del server: " + e.getMessage());
+            // Altri errori di runtime (es. problemi di database, errori interni)
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Errore interno del server: " + e.getMessage()); // 500 Internal Server Error
         }
     }
 

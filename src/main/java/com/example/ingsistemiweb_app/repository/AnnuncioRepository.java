@@ -11,7 +11,4 @@ public interface AnnuncioRepository extends JpaRepository<Annuncio, Long> {
     // Trova tutti gli annunci attivi, ordinati per data di pubblicazione decrescente
     List<Annuncio> findByAttivoTrueOrderByDataPubblicazioneDesc();
 
-    // Trova tutti gli annunci, sia attivi che non, per l'amministratore (utile per la dashboard admin)
-    List<Annuncio> findByAmministratoreIdOrderByDataPubblicazioneDesc(Long amministratoreId);
-
 }
