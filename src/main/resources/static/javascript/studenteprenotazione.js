@@ -126,7 +126,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 // Determinazione dello stato visivo
                 if (p.checkedIn) statoHtml = '<span class="tag is-success">Check-in Effettuato</span>';
                 else if (adesso > fineFinestraCheckIn) statoHtml = '<span class="tag is-danger">Mancato Check-in</span>';
-                else statoHtml = '<span class="tag is-success">Attiva</span>';
+                else statoHtml = '<span class="tag is-success is-light"><i class="fas fa-check-circle mr-1"></i>Attiva</span>';
 
                 // Determinazione delle azioni disponibili
                 if (!p.checkedIn && adesso < inizioPrenotazione) 
@@ -141,7 +141,7 @@ document.addEventListener("DOMContentLoaded", () => {
             } 
             // Gestione prenotazioni terminate
             else {
-                statoHtml = '<span class="tag is-warning">Terminata</span>';
+                statoHtml = '<span class="tag is-danger is-light"><i class="fas fa-times-circle mr-1"></i>Terminata</span>';
                 // Gestione recensioni
                 if (p.recensione) 
                     // Se c'è già una recensione, mostra pulsante per visualizzarla

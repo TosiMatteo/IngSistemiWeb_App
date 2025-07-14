@@ -122,8 +122,9 @@ document.addEventListener("DOMContentLoaded", () => {
             const inizioPrenotazione = new Date(p.inizio);
 
             // Determinazione dello stato visivo
-            const statoClass = p.attiva ? 'is-success' : 'is-warning';
-            const statoText = p.attiva ? 'Attiva' : 'Terminata';
+            const statoHtml = p.attiva
+                ? '<span class="tag is-success is-light"><i class="fas fa-check-circle mr-1"></i> Attiva</span>'
+                : '<span class="tag is-danger is-light"><i class="fas fa-times-circle mr-1"></i> Terminata</span>';
 
             // Mostra il pulsante "Termina" solo per le prenotazioni attive
             const bottoneTermina = p.attiva 
@@ -137,7 +138,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <td>${inizioPrenotazione.toLocaleDateString('it-IT')}</td>
                     <td>${inizioPrenotazione.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</td>
                     <td>${new Date(p.fine).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</td>
-                    <td><span class="tag ${statoClass}">${statoText}</span></td>
+                    <td>${statoHtml}</td>
                     <td>${bottoneTermina}</td>
                 </tr>
             `;

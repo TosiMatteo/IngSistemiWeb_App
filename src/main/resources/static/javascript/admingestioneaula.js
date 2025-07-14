@@ -176,7 +176,6 @@ function loadPrenotazioni() {
     }
 
     // Chiamata API al Backend.
-    // MODIFICA QUI: L'endpoint ora è /api/admin/prenotazioni
     axios.get(`/api/admin/prenotazioni?aulaId=${aulaId}&data=${data}`)
         .then(response => {
 
@@ -185,7 +184,7 @@ function loadPrenotazioni() {
             if (response.data.length > 0 && downloadButton) {
                 downloadButton.disabled = false;
             } else if (downloadButton) {
-                downloadButton.disabled = true; // Lascialo disabilitato se non ci sono prenotazioni
+                downloadButton.disabled = true; // Disabilitato se non ci sono prenotazioni
             }
             // Preparazione della Tabella HTML.
             const tableBody = document.getElementById("prenotazioniTable"); // Riferimento al corpo della tabella.
@@ -219,13 +218,11 @@ function loadPrenotazioni() {
                 fineCell.textContent = new Date(prenotazione.fine).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 row.appendChild(fineCell);
 
-                // Cella Stato della Prenotazione (Attiva/Terminata con stile Bulma).
+                // Cella Stato della Prenotazione (Attiva/Terminata).
                 const statoCell = document.createElement("td");
                 const statoTag = document.createElement("span"); // Crea uno span per il tag visivo.
-                // Applica classi CSS di Bulma in base allo stato 'attiva' della prenotazione.
                 // 'is-success' (verde) per attiva, 'is-danger' (rosso) per terminata.
                 statoTag.className = prenotazione.attiva ? "tag is-success is-light" : "tag is-danger is-light";
-                // Aggiunge un'icona (check/times) e il testo descrittivo.
                 statoTag.innerHTML = prenotazione.attiva
                     ? '<i class="fas fa-check-circle mr-1"></i> Attiva'
                     : '<i class="fas fa-times-circle mr-1"></i> Terminata';
@@ -237,7 +234,7 @@ function loadPrenotazioni() {
                 // Il pulsante "Termina" viene mostrato solo se la prenotazione è ancora attiva.
                 if (prenotazione.attiva) {
                     const terminaBtn = document.createElement("button");
-                    terminaBtn.className = "button is-small is-warning"; // Stile Bulma per il pulsante.
+                    terminaBtn.className = "button is-small is-warning";
                     terminaBtn.textContent = "Termina";
                     // Collega il click del pulsante alla funzione 'terminaPrenotazioneAdmin' passando l'ID della prenotazione.
                     terminaBtn.onclick = () => terminaPrenotazioneAdmin(prenotazione.id);
@@ -282,7 +279,6 @@ function terminaPrenotazioneAdmin(idPrenotazione) {
     if (!confirm("Sei sicuro di voler terminare questa prenotazione?")) return;
 
     // Invia la richiesta POST per terminare la prenotazione.
-    // MODIFICA QUI: L'endpoint ora è /api/admin/prenotazioni
     axios.post(`/api/admin/prenotazioni/${idPrenotazione}/termina`)
         .then(() => {
             // Se la richiesta ha successo, mostra un alert e ricarica le prenotazioni per aggiornare la tabella.
@@ -326,7 +322,7 @@ function apriModalVisualizzazioneRecensione(testoRecensione) {
     apriModale("modal-visualizza-recensione");
 }
 
-// Aggiunta degli event listener per i pulsanti di chiusura della modale di visualizzazione recensione.
+//Event listener per i pulsanti di chiusura della modale di visualizzazione recensione.
 // Questo blocco assicura che gli handler vengano attaccati solo quando il DOM è completamente pronto.
 document.addEventListener("DOMContentLoaded", () => {
     const modalVisualizzazione = document.getElementById("modal-visualizza-recensione");
