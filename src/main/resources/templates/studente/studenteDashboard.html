@@ -5,15 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard Studente</title>
     <link rel="stylesheet" th:href="@{/css/bulma/css/bulma.css}" />
+    <link rel="stylesheet" th:href="@{/css/boxcolor.css}" />
     <meta name="_csrf" th:content="${_csrf.token}" />
     <meta name="_csrf_header" th:content="${_csrf.headerName}" />
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
-    <style>
-        .dispo-tile { border: 2px solid transparent; transition: all 0.2s ease-in-out; }
-        .dispo-tile.is-clickable:hover { transform: translateY(-4px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer; }
-        .dispo-tile.selectable-suggestion { outline: 2px dashed #79a6d2; outline-offset: -2px; }
-    </style>
 </head>
 <body>
 
@@ -90,10 +86,10 @@
                     <button class="button is-link" data-filtro="tutte">Tutte</button>
                 </p>
                 <p class="control">
-                    <button class="button" data-filtro="attive">Attive</button>
+                    <button class="button is-link" data-filtro="attive">Attive</button>
                 </p>
                 <p class="control">
-                    <button class="button" data-filtro="terminate">Terminate</button>
+                    <button class="button is-link" data-filtro="terminate">Terminate</button>
                 </p>
             </div>
             <table class="table is-fullwidth is-striped">
@@ -176,19 +172,19 @@
     </div>
 </div>
 
-<!-- Modale per annullare la prenotazione -->
+<!-- Modale per terminare la prenotazione -->
 <div class="modal" id="modal-termina-prenotazione">
     <div class="modal-background" onclick="chiudiModale('modal-termina-prenotazione')"></div>
     <div class="modal-card">
         <header class="modal-card-head">
-            <p class="modal-card-title">Annulla prenotazione</p>
+            <p class="modal-card-title">Termina prenotazione</p>
             <button class="delete" aria-label="close"></button>
         </header>
         <section class="modal-card-body">
-            <p>Sei sicuro di voler annullare questa prenotazione?</p>
+            <p>Sei sicuro di voler terminare questa prenotazione?</p>
         </section>
         <footer class="modal-card-foot">
-            <button class="button is-danger" id="confermaAnnullamentoStudenteBtn">Annulla Prenotazione</button>
+            <button class="button is-danger" id="confermaAnnullamentoStudenteBtn">Termina Prenotazione</button>
             <button class="button" onclick="chiudiModale('modal-termina-prenotazione')">Chiudi</button>
         </footer>
     </div>

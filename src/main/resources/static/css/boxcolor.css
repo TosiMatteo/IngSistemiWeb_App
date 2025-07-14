@@ -1,0 +1,27 @@
+/* Stile di base per tutti i box orario */
+.dispo-tile {
+    border: 2px solid transparent;
+    transition: all 0.2s ease-in-out;
+}
+
+/* Forza il colore del testo nero per tutti i paragrafi all'interno dei box orario */
+.dispo-tile p {
+    color: #0a0a0a !important; /* #0a0a0a è il nero di Bulma. !important garantisce la priorità. */
+}
+
+/* Stile per i box cliccabili quando ci si passa sopra con il mouse */
+.dispo-tile.is-clickable:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    cursor: pointer;
+}
+
+/* Quando un box è selezionato (sfondo blu), il testo DEVE diventare bianco */
+.dispo-tile.has-text-white p {
+    color: white !important;
+}
+
+/* Quando un box è un suggerimento, il testo DEVE diventare blu */
+.dispo-tile.has-text-link p {
+    color: #3e8ed0 !important; /* Colore 'link' di Bulma */
+}

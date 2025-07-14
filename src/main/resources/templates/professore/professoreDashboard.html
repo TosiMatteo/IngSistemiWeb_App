@@ -6,15 +6,11 @@
     <title>Dashboard Professore</title>
 
     <link rel="stylesheet" th:href="@{/css/bulma/css/bulma.css}" />
+    <link rel="stylesheet" th:href="@{/css/boxcolor.css}" />
     <meta name="_csrf" th:content="${_csrf.token}" />
     <meta name="_csrf_header" th:content="${_csrf.headerName}" />
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
-    <style>
-        .dispo-tile { border: 2px solid transparent; transition: all 0.2s ease-in-out; }
-        .dispo-tile.is-clickable:hover { transform: translateY(-4px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer; }
-        .dispo-tile.selectable-suggestion { outline: 2px dashed #79a6d2; outline-offset: -2px; }
-    </style>
 </head>
 <body>
 
@@ -86,9 +82,15 @@
         <div class="box">
             <h2 class="title">Le mie prenotazioni</h2>
             <div class="field is-grouped mb-4" id="filtri-prenotazioni">
-                <p class="control"><button class="button is-link" data-filtro="tutte">Tutte</button></p>
-                <p class="control"><button class="button" data-filtro="attive">Attive</button></p>
-                <p class="control"><button class="button" data-filtro="terminate">Terminate</button></p>
+                <p class="control">
+                    <button class="button is-link" data-filtro="tutte">Tutte</button>
+                </p>
+                <p class="control">
+                    <button class="button is-link" data-filtro="attive">Attive</button>
+                </p>
+                <p class="control">
+                    <button class="button is-link" data-filtro="terminate">Terminate</button>
+                </p>
             </div>
             <table class="table is-fullwidth is-striped">
                 <thead>
