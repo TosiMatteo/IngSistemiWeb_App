@@ -1,5 +1,7 @@
 // admingestioneaula.js
 
+// Gestione aula
+
 document.addEventListener("DOMContentLoaded", () => {
     // Riferimenti agli elementi del DOM
     const aulaSelect = document.getElementById("aulaSelect");
@@ -7,6 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnNewAula = document.getElementById("btn-new-aula");
     const btnSaveAula = document.getElementById("btn-save-aula");
     const btnCancel = document.getElementById("btn-cancel");
+    const btnDeleteAula = document.getElementById("btn-delete-aula");
 
     // Campi del form
     const aulaNomeInput = document.getElementById("aulaNome");
@@ -53,6 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
         aulaAttivaCheckbox.checked = selectedOption.getAttribute("data-attiva") === "true";
 
         btnSaveAula.textContent = "Aggiorna Aula";
+        btnDeleteAula.style.display = 'inline-block';
         aulaDetailsDiv.style.display = "block";
     }
 
@@ -76,6 +80,7 @@ document.addEventListener("DOMContentLoaded", () => {
         aulaAttivaCheckbox.checked = true;
 
         btnSaveAula.textContent = "Crea Aula";
+        btnDeleteAula.style.display = 'none';
         aulaDetailsDiv.style.display = "block";
     }
 
@@ -131,6 +136,23 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    function deleteAula() {
+        const aulaId = aulaSelect.value;
+        if (!aulaId) return;
+
+        if (confirm(`Sei sicuro di voler eliminare l'aula "${aulaSelect.options[aulaSelect.selectedIndex].text}"?\nATTENZIONE: Verranno eliminate anche tutte le prenotazioni associate a questa aula.`)) {
+            axios.delete(`/api/aule/${aulaId}`)
+                .then(() => {
+                    alert("Aula eliminata con successo!");
+                    window.location.reload();
+                })
+                .catch(error => {
+                    console.error("Errore eliminazione aula:", error);
+                    alert("Errore durante l'eliminazione dell'aula.");
+                });
+        }
+    }
+
     function cancel() {
         aulaDetailsDiv.style.display = 'none';
         isCreateMode = false;
@@ -141,6 +163,7 @@ document.addEventListener("DOMContentLoaded", () => {
     aulaSelect.addEventListener('change', showEditForm);
     btnNewAula.addEventListener('click', showCreateForm);
     btnSaveAula.addEventListener('click', saveAula);
+    btnDeleteAula.addEventListener('click', deleteAula);
     btnCancel.addEventListener('click', cancel);
 
     // Listener per mostrare il nome del file scelto
@@ -152,6 +175,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 });
+
+// Gestione prenotazioni
 
 let prenotazioniCorrenti = [];
 /**

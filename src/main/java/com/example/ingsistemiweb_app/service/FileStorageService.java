@@ -22,21 +22,6 @@ public class FileStorageService {
      */
     private final Path root = Paths.get("src/main/resources/static/images");
 
-    /**
-     * Inizializza la directory di archiviazione dei file.
-     * Questo metodo dovrebbe essere chiamato all'avvio dell'applicazione per assicurarsi
-     * che la directory esista prima che vengano effettuati i caricamenti.
-     * 
-     * @throws RuntimeException se non è possibile creare la directory
-     */
-    public void init() {
-        try {
-            // Crea la directory se non esiste già
-            Files.createDirectories(root);
-        } catch (IOException e) {
-            throw new RuntimeException("Could not initialize folder for upload!");
-        }
-    }
 
     /**
      * Salva un file caricato nella directory di archiviazione con un nome univoco.
@@ -68,6 +53,31 @@ public class FileStorageService {
             return "/images/" + newFilename;
         } catch (Exception e) {
             throw new RuntimeException("Could not store the file. Error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Elimina un file dalla directory di archiviazione.
+     * * @param imageUrl Il percorso web dell'immagine da eliminare (es. /images/nomefile.jpg)
+     */
+    public void delete(String imageUrl) {
+        // Se l'URL dell'immagine non è valido o è nullo, non fare nulla.
+        if (imageUrl == null || imageUrl.isEmpty() || !imageUrl.startsWith("/images/")) {
+            return;
+        }
+
+        try {
+            // Estrai il nome del file dal percorso web
+            String filename = imageUrl.substring("/images/".length());
+            // Costruisci il percorso completo del file sul disco
+            Path filePath = root.resolve(filename);
+
+            // Elimina il file se esiste, senza lanciare errori se non viene trovato.
+            Files.deleteIfExists(filePath);
+        } catch (IOException e) {
+            // Logga un avviso invece di bloccare l'operazione.
+            // La mancata eliminazione di un file non dovrebbe impedire la cancellazione dei dati dal DB.
+            System.err.println("Impossibile eliminare il file immagine: " + imageUrl + ". Errore: " + e.getMessage());
         }
     }
 }

@@ -53,4 +53,5 @@ public interface PrenotazioneRepository extends JpaRepository<Prenotazione, Long
 
     Page<Prenotazione> findByUtente(User utente, Pageable pageable);
 
+    List<Prenotazione> findByAula(Aula aula);
 }

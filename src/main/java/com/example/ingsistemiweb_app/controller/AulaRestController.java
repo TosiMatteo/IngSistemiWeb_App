@@ -273,4 +273,28 @@ public class AulaRestController {
         return new ResponseEntity<>(savedAula, HttpStatus.CREATED);
     }
 
+    @DeleteMapping("/{id}")
+    @Transactional
+    public ResponseEntity<Object> deleteAula(@PathVariable Long id) {
+        return aulaRepository.findById(id).map(aula -> {
+
+            // Prima di eliminare l'aula, recupera il percorso dell'immagine
+            String imageUrlToDelete = aula.getImageUrl();
+
+            // 1. Elimina le prenotazioni associate
+            List<Prenotazione> prenotazioniAssociate = prenotazioneRepository.findByAula(aula);
+            prenotazioneRepository.deleteAll(prenotazioniAssociate);
+
+            // 2. Elimina l'aula dal database
+            aulaRepository.delete(aula);
+
+            // 3. Elimina il file immagine associato dal disco del server
+            fileStorageService.delete(imageUrlToDelete);
+
+            // Restituisce 204 No Content per indicare che l'operazione è riuscita ma non c'è corpo da restituire.
+            return ResponseEntity.noContent().build();
+
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
 }
