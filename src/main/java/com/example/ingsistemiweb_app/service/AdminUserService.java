@@ -100,11 +100,8 @@ public class AdminUserService {
             throw new IllegalArgumentException("Un account amministratore non può essere eliminato.");
         }
 
-        // AZIONE PRELIMINARE: Annulla tutte le prenotazioni attive dell'utente prima di eliminarlo.
-        prenotazioneRepository.findByUtenteAndAttiva(user, true).forEach(p -> {
-            p.setAttiva(false);
-            prenotazioneRepository.save(p);
-        });
+        // AZIONE PRELIMINARE: Elimina tutte le prenotazioni associate all'utente.
+        prenotazioneRepository.deleteByUtente(user);
 
         // Eliminazione
         userRepository.delete(user);
