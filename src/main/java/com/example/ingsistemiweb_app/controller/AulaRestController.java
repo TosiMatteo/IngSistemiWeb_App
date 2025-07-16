@@ -117,6 +117,8 @@ public class AulaRestController {
             @RequestParam("capienza") int capienza,
             @RequestParam("risorse") String risorse,
             @RequestParam("attiva") boolean attiva,
+            @RequestParam("orarioApertura") String orarioAperturaStr,
+            @RequestParam("orarioChiusura") String orarioChiusuraStr,
             @RequestParam(value = "immagineFile", required = false) MultipartFile immagineFile) {
 
         // 1. Cerca l'aula esistente nel database tramite il suo ID.
@@ -129,6 +131,10 @@ public class AulaRestController {
             // 2. Aggiorna le proprietà dell'aula con i nuovi dati forniti dalla richiesta.
             aula.setNome(nome);
             aula.setCapienza(capienza);
+            if (!aula.isAttiva()) {
+                aula.setOrarioApertura(LocalTime.parse(orarioAperturaStr));
+                aula.setOrarioChiusura(LocalTime.parse(orarioChiusuraStr));
+            }
             // Converte la stringa di risorse separata da virgole in una lista.
             aula.setRisorse(new java.util.ArrayList<>(java.util.Arrays.asList(risorse.split(","))));
             aula.setAttiva(attiva);
@@ -277,6 +283,8 @@ public class AulaRestController {
             @RequestParam("nome") String nome,
             @RequestParam("capienza") int capienza,
             @RequestParam("risorse") String risorse,
+            @RequestParam("orarioApertura") String orarioAperturaStr,
+            @RequestParam("orarioChiusura") String orarioChiusuraStr,
             @RequestParam("attiva") boolean attiva,
             @RequestParam(value = "immagineFile", required = false) MultipartFile immagineFile) {
 
@@ -285,6 +293,8 @@ public class AulaRestController {
         newAula.setNome(nome);                                     // Imposta il nome dell'aula
         newAula.setCapienza(capienza);                             // Imposta la capienza massima
         newAula.setRisorse(java.util.Arrays.asList(risorse.split(","))); // Converte la stringa risorse in lista
+        newAula.setOrarioApertura(LocalTime.parse(orarioAperturaStr));
+        newAula.setOrarioChiusura(LocalTime.parse(orarioChiusuraStr));
         newAula.setAttiva(attiva);                                // Imposta lo stato di attivazione
 
         // Gestione dell'immagine dell'aula (opzionale)

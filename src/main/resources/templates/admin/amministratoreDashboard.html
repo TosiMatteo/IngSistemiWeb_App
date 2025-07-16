@@ -51,6 +51,8 @@
                                     th:value="${aula.id}"
                                     th:data-capienza="${aula.capienza}"
                                     th:data-risorse="${aula.risorseString}"
+                                    th:data-orarioapertura="${aula.orarioApertura}"
+                                    th:data-orariochiusura="${aula.orarioChiusura}"
                                     th:data-attiva="${aula.attiva}"
                                     th:data-imageurl="${aula.imageUrl}"
                                     th:text="${aula.nome}">
@@ -80,6 +82,25 @@
                             <label class="label">Capienza</label>
                             <div class="control">
                                 <input class="input" type="number" id="aulaCapienza" style="max-width: 150px">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="columns">
+                    <div class="column">
+                        <div class="field">
+                            <label class="label">Orario di apertura</label>
+                            <div class="control">
+                                <input class="input" type="time" id="orarioApertura">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="field">
+                            <label class="label">Orario di chiusura</label>
+                            <div class="control">
+                                <input class="input" type="time" id="orarioChiusura">
                             </div>
                         </div>
                     </div>

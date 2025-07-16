@@ -42,6 +42,15 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
+        document.getElementById("orarioApertura").value = selectedOption.getAttribute("data-orarioapertura") || "08:00";
+        document.getElementById("orarioChiusura").value = selectedOption.getAttribute("data-orariochiusura") || "20:00";
+
+        // Disabilita modifica se l’aula è attiva
+        const isAttiva = selectedOption.getAttribute("data-attiva") === "true";
+        document.getElementById("orarioApertura").disabled = isAttiva;
+        document.getElementById("orarioChiusura").disabled = isAttiva;
+
+
         imageUploadField.style.display = 'block';
 
         // Popola i campi del form
@@ -75,6 +84,10 @@ document.addEventListener("DOMContentLoaded", () => {
         aulaImmagineFileInput.value = null; // Resetta il file input
         fileNameDisplay.textContent = "Nessun file selezionato";
         aulaAttivaCheckbox.checked = true;
+        document.getElementById("orarioApertura").value = "08:00";
+        document.getElementById("orarioChiusura").value = "20:00";
+        document.getElementById("orarioApertura").disabled = false;
+        document.getElementById("orarioChiusura").disabled = false;
 
         btnSaveAula.textContent = "Crea Aula";
         btnDeleteAula.style.display = 'none';
@@ -99,6 +112,8 @@ document.addEventListener("DOMContentLoaded", () => {
         formData.append("capienza", capienza);
         formData.append("risorse", aulaRisorseInput.value);
         formData.append("attiva", aulaAttivaCheckbox.checked);
+        formData.append("orarioApertura", document.getElementById("orarioApertura").value);
+        formData.append("orarioChiusura", document.getElementById("orarioChiusura").value);
 
         // Aggiungi il file solo se ne è stato selezionato uno nuovo
         const immagineFileInput = document.getElementById("aulaImmagineFile");
