@@ -92,7 +92,7 @@ public class AdminController {
 
     /**
      * Fornisce un elenco paginato e filtrabile di tutti gli utenti.
-     * @param ruolo Filtro opzionale per ruolo (STUDENTE, PROFESSORE).
+     * @param ruolo Filtro opzionale per ruolo (STUDENTE, PROFESSORE, AMMINISTRATORE).
      * @param searchTerm Filtro opzionale per cercare per nome, cognome o email.
      * @param pageable Oggetto per la paginazione e l'ordinamento.
      * @return Una "pagina" di utenti che corrispondono ai criteri.
