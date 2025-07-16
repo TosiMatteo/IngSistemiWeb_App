@@ -19,9 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Campi specifici per l'immagine
     const imageUploadField = document.getElementById("image-upload-field");
-    const imagePathField = document.getElementById("image-path-field");
     const aulaImmagineFileInput = document.getElementById("aulaImmagineFile");
-    const aulaImageUrlInput = document.getElementById("aulaImageUrl");
     const fileNameDisplay = document.getElementById("file-name-display");
 
     // Stato per sapere se stiamo creando o modificando
@@ -44,16 +42,17 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // Mostra il campo del percorso testuale e nascondi quello di upload
-        imagePathField.style.display = 'block';
-        imageUploadField.style.display = 'none';
+        imageUploadField.style.display = 'block';
 
         // Popola i campi del form
         aulaNomeInput.value = selectedOption.text;
         aulaCapienzaInput.value = selectedOption.getAttribute("data-capienza");
         aulaRisorseInput.value = selectedOption.getAttribute("data-risorse");
-        aulaImageUrlInput.value = selectedOption.getAttribute("data-imageurl") || 'Nessuna immagine specificata';
         aulaAttivaCheckbox.checked = selectedOption.getAttribute("data-attiva") === "true";
+
+        // Pulisci il file input precedente
+        aulaImmagineFileInput.value = null;
+        fileNameDisplay.textContent = "Nessun file selezionato";
 
         btnSaveAula.textContent = "Aggiorna Aula";
         btnDeleteAula.style.display = 'inline-block';
@@ -67,8 +66,6 @@ document.addEventListener("DOMContentLoaded", () => {
         isCreateMode = true;
         aulaSelect.value = "";
 
-        // Mostra il campo di upload e nascondi quello del percorso testuale
-        imagePathField.style.display = 'none';
         imageUploadField.style.display = 'block';
 
         // Pulisci tutti i campi del form
@@ -88,52 +85,59 @@ document.addEventListener("DOMContentLoaded", () => {
      * Gestisce il salvataggio (creazione o aggiornamento) dell'aula.
      */
     function saveAula() {
+        const nome = aulaNomeInput.value;
+        const capienza = aulaCapienzaInput.value;
+
+        if (!nome || capienza <= 0) {
+            alert("Nome e capienza sono campi obbligatori.");
+            return;
+        }
+
+        // 1. Prepara un oggetto FormData
+        const formData = new FormData();
+        formData.append("nome", nome);
+        formData.append("capienza", capienza);
+        formData.append("risorse", aulaRisorseInput.value);
+        formData.append("attiva", aulaAttivaCheckbox.checked);
+
+        // Aggiungi il file solo se ne è stato selezionato uno nuovo
+        const immagineFileInput = document.getElementById("aulaImmagineFile");
+        if (immagineFileInput.files.length > 0) {
+            formData.append("immagineFile", immagineFileInput.files[0]);
+        }
+
+        // 2. Determina l'URL e il metodo HTTP in base alla modalità (creazione o modifica)
+        let url, method;
+
         if (isCreateMode) {
-            // --- Logica di CREAZIONE (POST con FormData) ---
-            const formData = new FormData();
-            formData.append("nome", aulaNomeInput.value);
-            formData.append("capienza", aulaCapienzaInput.value);
-            formData.append("risorse", aulaRisorseInput.value);
-            formData.append("attiva", aulaAttivaCheckbox.checked);
-
-            if (aulaImmagineFileInput.files.length > 0) {
-                formData.append("immagineFile", aulaImmagineFileInput.files[0]);
-            }
-
-            axios.post('/api/aule', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            })
-                .then(() => {
-                    alert("Aula creata con successo!");
-                    window.location.reload();
-                })
-                .catch(error => {
-                    console.error("Errore creazione aula:", error);
-                    alert("Errore durante la creazione dell'aula.");
-                });
+            url = '/api/aule';
+            method = 'post';
         } else {
-            // --- Logica di AGGIORNAMENTO (PUT) ---
             const aulaId = aulaSelect.value;
             if (!aulaId) return;
-
-            const aulaData = {
-                nome: aulaNomeInput.value,
-                capienza: parseInt(aulaCapienzaInput.value, 10),
-                risorse: aulaRisorseInput.value.split(",").map(r => r.trim()),
-                attiva: aulaAttivaCheckbox.checked,
-                imageUrl: aulaImageUrlInput.value
-            };
-
-            axios.put(`/api/aule/${aulaId}`, aulaData)
-                .then(() => {
-                    alert("Aula aggiornata con successo!");
-                    window.location.reload();
-                })
-                .catch(error => {
-                    console.error("Errore aggiornamento aula:", error);
-                    alert(error.response?.data || "Errore durante l'aggiornamento.");
-                });
+            url = `/api/aule/${aulaId}`;
+            method = 'put';
         }
+
+        // 3. Esegui la chiamata API con Axios
+        axios({
+            method: method,
+            url: url,
+            data: formData,
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        })
+            .then(() => {
+                const action = isCreateMode ? "creata" : "aggiornata";
+                alert(`Aula ${action} con successo!`);
+                window.location.reload();
+            })
+            .catch(error => {
+                const action = isCreateMode ? "creazione" : "aggiornamento";
+                console.error(`Errore ${action} aula:`, error);
+                alert(`Errore durante l'${action} dell'aula.`);
+            });
     }
 
     function deleteAula() {
@@ -296,7 +300,7 @@ function loadPrenotazioni() {
 /**
  * Termina una prenotazione specifica da parte dell'amministratore.
  * @param {number} idPrenotazione - L'ID della prenotazione da terminare.
- * @fires POST - Invia una richiesta HTTP POST all'endpoint `/api/admin/prenotazioni/{id}/termina`. // MODIFICA QUI: Aggiornato doc
+ * @fires POST - Invia una richiesta HTTP POST all'endpoint `/api/admin/prenotazioni/{id}/termina`.
  * @returns {void}
  */
 function terminaPrenotazioneAdmin(idPrenotazione) {
