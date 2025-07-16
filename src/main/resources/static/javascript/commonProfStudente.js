@@ -147,11 +147,14 @@ function inizializzaBookingInterattivo(config) {
         resetSelezione();
         const data = dataInput.value;
         const aulaId = aulaSelect.value;
+
         if (!data || !aulaId) {
             disponibilitaGrid.innerHTML = '<p class="has-text-grey column is-full">Seleziona una data e un\'aula.</p>';
             return;
         }
+
         try {
+            // Carica gli slot disponibili
             const response = await axios.get(`/api/aule/${aulaId}/disponibilita`, { params: { data } });
             let fetchedSlots = response.data;
             const oggi = new Date();
@@ -173,6 +176,7 @@ function inizializzaBookingInterattivo(config) {
             showNotification('Errore nel caricamento della disponibilità.', false);
         }
     }
+
 
     /**
      * Renderizza la griglia di disponibilità con gli slot orari.

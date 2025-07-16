@@ -23,6 +23,7 @@
     <div class="container">
         <h1 class="subtitle">Benvenuto Prof. <span th:text="${username}"></span></h1>
 
+        <!-- Prenotazione aula professore -->
         <div class="box">
             <h2 class="title">Crea la tua Prenotazione</h2>
             <p class="subtitle is-6">Seleziona data e aula, poi clicca su uno o più slot orari disponibili per prenotare.</p>
@@ -86,10 +87,10 @@
                     <button class="button is-link" data-filtro="tutte">Tutte</button>
                 </p>
                 <p class="control">
-                    <button class="button is-link" data-filtro="attive">Attive</button>
+                    <button class="button" data-filtro="attive">Attive</button>
                 </p>
                 <p class="control">
-                    <button class="button is-link" data-filtro="terminate">Terminate</button>
+                    <button class="button" data-filtro="terminate">Terminate</button>
                 </p>
             </div>
             <table class="table is-fullwidth is-striped">

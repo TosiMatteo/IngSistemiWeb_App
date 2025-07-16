@@ -17,10 +17,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime; // Importa LocalDateTime
+import java.time.LocalTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * Controller REST per la gestione delle aule.
@@ -212,8 +211,10 @@ public class AulaRestController {
         // Parsifica la data e definisce gli orari di apertura/chiusura dell'aula per la giornata.
         LocalDate localDate = LocalDate.parse(data);
         ZoneId zona = ZoneId.of("Europe/Rome"); // Fuso orario per i calcoli.
-        LocalDateTime start = localDate.atTime(8, 0); // Orario di apertura (08:00).
-        LocalDateTime end = localDate.atTime(20, 0);  // Orario di chiusura (20:00).
+        LocalTime apertura = aula.getOrarioApertura();
+        LocalTime chiusura = aula.getOrarioChiusura();
+        LocalDateTime start = localDate.atTime(apertura);
+        LocalDateTime end = localDate.atTime(chiusura);
 
         List<SlotDisponibilita> slots = new ArrayList<>(); // Lista per memorizzare gli slot disponibili.
         LocalDateTime cursor = start; // Cursore per iterare sugli slot di tempo.
