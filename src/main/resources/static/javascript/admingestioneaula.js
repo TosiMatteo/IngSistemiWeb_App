@@ -15,20 +15,36 @@ document.addEventListener("DOMContentLoaded", () => {
     const aulaNomeInput = document.getElementById("aulaNome");
     const aulaCapienzaInput = document.getElementById("aulaCapienza");
     const aulaRisorseInput = document.getElementById("aulaRisorse");
+    const orarioAperturaInput = document.getElementById("orarioApertura");
+    const orarioChiusuraInput = document.getElementById("orarioChiusura");
     const aulaAttivaCheckbox = document.getElementById("aulaAttiva");
-
-    // Campi specifici per l'immagine
-    const imageUploadField = document.getElementById("image-upload-field");
+    const attivaLabel = document.getElementById("attiva-label");
+    const warningModifica = document.getElementById("warning-modifica");
     const aulaImmagineFileInput = document.getElementById("aulaImmagineFile");
     const fileNameDisplay = document.getElementById("file-name-display");
 
     // Stato per sapere se stiamo creando o modificando
     let isCreateMode = false;
 
-    // Imposta il token CSRF per Axios
-    const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
-    const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
-    axios.defaults.headers.common[csrfHeader] = csrfToken;
+    axios.defaults.headers.common[document.querySelector('meta[name="_csrf_header"]').getAttribute('content')] = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+
+    /**
+     * Abilita o disabilita i campi sensibili (capienza, orari) e aggiorna le etichette.
+     * @param {boolean} disable - True per disabilitare, false per abilitare.
+     */
+    function setSensitiveFieldsDisabled(disable) {
+        aulaCapienzaInput.disabled = disable;
+        orarioAperturaInput.disabled = disable;
+        orarioChiusuraInput.disabled = disable;
+        warningModifica.style.display = disable ? 'block' : 'none';
+    }
+
+    /**
+     * Aggiorna l'etichetta dello stato Attiva/Non Attiva
+     */
+    function updateAttivaLabel(isAttiva) {
+        attivaLabel.textContent = isAttiva ? "Attiva" : "Non Attiva";
+    }
 
     /**
      * Mostra e popola il form per MODIFICARE un'aula esistente.
@@ -42,26 +58,20 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        document.getElementById("orarioApertura").value = selectedOption.getAttribute("data-orarioapertura") || "08:00";
-        document.getElementById("orarioChiusura").value = selectedOption.getAttribute("data-orariochiusura") || "20:00";
-
-        // Disabilita modifica se l’aula è attiva
         const isAttiva = selectedOption.getAttribute("data-attiva") === "true";
-        document.getElementById("orarioApertura").disabled = isAttiva;
-        document.getElementById("orarioChiusura").disabled = isAttiva;
 
-
-        imageUploadField.style.display = 'block';
-
-        // Popola i campi del form
+        // Popola i campi
         aulaNomeInput.value = selectedOption.text;
         aulaCapienzaInput.value = selectedOption.getAttribute("data-capienza");
         aulaRisorseInput.value = selectedOption.getAttribute("data-risorse");
-        aulaAttivaCheckbox.checked = selectedOption.getAttribute("data-attiva") === "true";
-
-        // Pulisci il file input precedente
+        orarioAperturaInput.value = selectedOption.getAttribute("data-orarioapertura") || "08:00";
+        orarioChiusuraInput.value = selectedOption.getAttribute("data-orariochiusura") || "20:00";
+        aulaAttivaCheckbox.checked = isAttiva;
         aulaImmagineFileInput.value = null;
         fileNameDisplay.textContent = "Nessun file selezionato";
+
+        updateAttivaLabel(isAttiva);
+        setSensitiveFieldsDisabled(isAttiva); // Disabilita i campi se l'aula è attiva
 
         btnSaveAula.textContent = "Aggiorna Aula";
         btnDeleteAula.style.display = 'inline-block';
@@ -75,83 +85,59 @@ document.addEventListener("DOMContentLoaded", () => {
         isCreateMode = true;
         aulaSelect.value = "";
 
-        imageUploadField.style.display = 'block';
-
-        // Pulisci tutti i campi del form
-        aulaNomeInput.value = "";
-        aulaCapienzaInput.value = "";
-        aulaRisorseInput.value = "";
-        aulaImmagineFileInput.value = null; // Resetta il file input
-        fileNameDisplay.textContent = "Nessun file selezionato";
+        // Pulisci e imposta i valori di default
+        ['aulaNome', 'aulaCapienza', 'aulaRisorse'].forEach(id => document.getElementById(id).value = '');
+        orarioAperturaInput.value = "08:00";
+        orarioChiusuraInput.value = "20:00";
         aulaAttivaCheckbox.checked = true;
-        document.getElementById("orarioApertura").value = "08:00";
-        document.getElementById("orarioChiusura").value = "20:00";
-        document.getElementById("orarioApertura").disabled = false;
-        document.getElementById("orarioChiusura").disabled = false;
+        aulaImmagineFileInput.value = null;
+        fileNameDisplay.textContent = "Nessun file selezionato";
+
+        updateAttivaLabel(true);
+        // In modalità creazione, i campi sono SEMPRE abilitati
+        setSensitiveFieldsDisabled(false);
 
         btnSaveAula.textContent = "Crea Aula";
         btnDeleteAula.style.display = 'none';
         aulaDetailsDiv.style.display = "block";
     }
 
+
     /**
      * Gestisce il salvataggio (creazione o aggiornamento) dell'aula.
      */
     function saveAula() {
-        const nome = aulaNomeInput.value;
-        const capienza = aulaCapienzaInput.value;
-
-        if (!nome || capienza <= 0) {
+        if (!aulaNomeInput.value || !aulaCapienzaInput.value) {
             alert("Nome e capienza sono campi obbligatori.");
             return;
         }
 
         // 1. Prepara un oggetto FormData
         const formData = new FormData();
-        formData.append("nome", nome);
-        formData.append("capienza", capienza);
+        formData.append("nome", aulaNomeInput.value);
+        formData.append("capienza", aulaCapienzaInput.value);
         formData.append("risorse", aulaRisorseInput.value);
         formData.append("attiva", aulaAttivaCheckbox.checked);
-        formData.append("orarioApertura", document.getElementById("orarioApertura").value);
-        formData.append("orarioChiusura", document.getElementById("orarioChiusura").value);
+        formData.append("orarioApertura", orarioAperturaInput.value);
+        formData.append("orarioChiusura", orarioChiusuraInput.value);
 
         // Aggiungi il file solo se ne è stato selezionato uno nuovo
-        const immagineFileInput = document.getElementById("aulaImmagineFile");
-        if (immagineFileInput.files.length > 0) {
-            formData.append("immagineFile", immagineFileInput.files[0]);
+        if (aulaImmagineFileInput.files.length > 0) {
+            formData.append("immagineFile", aulaImmagineFileInput.files[0]);
         }
 
         // 2. Determina l'URL e il metodo HTTP in base alla modalità (creazione o modifica)
-        let url, method;
+        const method = isCreateMode ? 'post' : 'put';
+        const url = isCreateMode ? '/api/aule' : `/api/aule/${aulaSelect.value}`;
 
-        if (isCreateMode) {
-            url = '/api/aule';
-            method = 'post';
-        } else {
-            const aulaId = aulaSelect.value;
-            if (!aulaId) return;
-            url = `/api/aule/${aulaId}`;
-            method = 'put';
-        }
-
-        // 3. Esegui la chiamata API con Axios
-        axios({
-            method: method,
-            url: url,
-            data: formData,
-            headers: {
-                'Content-Type': 'multipart/form-data'
-            }
-        })
+        axios({ method, url, data: formData, headers: { 'Content-Type': 'multipart/form-data' }})
             .then(() => {
-                const action = isCreateMode ? "creata" : "aggiornata";
-                alert(`Aula ${action} con successo!`);
+                alert(`Aula ${isCreateMode ? 'creata' : 'aggiornata'} con successo!`);
                 window.location.reload();
             })
             .catch(error => {
-                const action = isCreateMode ? "creazione" : "aggiornamento";
-                console.error(`Errore ${action} aula:`, error);
-                alert(`Errore durante l'${action} dell'aula.`);
+                console.error(`Errore ${isCreateMode ? 'creazione' : 'aggiornamento'} aula:`, error);
+                alert(`Errore durante l'${isCreateMode ? 'creazione' : 'aggiornamento'} dell'aula.`);
             });
     }
 
@@ -159,16 +145,13 @@ document.addEventListener("DOMContentLoaded", () => {
         const aulaId = aulaSelect.value;
         if (!aulaId) return;
 
-        if (confirm(`Sei sicuro di voler eliminare l'aula "${aulaSelect.options[aulaSelect.selectedIndex].text}"?\nATTENZIONE: Verranno eliminate anche tutte le prenotazioni associate a questa aula.`)) {
+        if (confirm(`Sei sicuro di voler eliminare l'aula? Verranno eliminate anche tutte le prenotazioni associate.`)) {
             axios.delete(`/api/aule/${aulaId}`)
                 .then(() => {
                     alert("Aula eliminata con successo!");
                     window.location.reload();
                 })
-                .catch(error => {
-                    console.error("Errore eliminazione aula:", error);
-                    alert("Errore durante l'eliminazione dell'aula.");
-                });
+                .catch(error => console.error("Errore eliminazione aula:", error));
         }
     }
 
@@ -185,13 +168,17 @@ document.addEventListener("DOMContentLoaded", () => {
     btnDeleteAula.addEventListener('click', deleteAula);
     btnCancel.addEventListener('click', cancel);
 
-    // Listener per mostrare il nome del file scelto
-    aulaImmagineFileInput.onchange = () => {
-        if (aulaImmagineFileInput.files.length > 0) {
-            fileNameDisplay.textContent = aulaImmagineFileInput.files[0].name;
-        } else {
-            fileNameDisplay.textContent = "Nessun file selezionato";
+    // Listener per il toggle "Attiva" che abilita/disabilita i campi SOLO in modalità modifica
+    aulaAttivaCheckbox.addEventListener('change', (e) => {
+        const isChecked = e.target.checked;
+        updateAttivaLabel(isChecked);
+        if (!isCreateMode) { // Applica la logica solo se stiamo modificando
+            setSensitiveFieldsDisabled(isChecked);
         }
+    });
+
+    aulaImmagineFileInput.onchange = () => {
+        fileNameDisplay.textContent = aulaImmagineFileInput.files.length > 0 ? aulaImmagineFileInput.files[0].name : "Nessun file selezionato";
     };
 });
 
