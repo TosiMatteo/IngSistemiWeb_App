@@ -46,10 +46,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
      */
     @Query("SELECT u FROM User u WHERE " +
             "(:ruolo IS NULL OR u.ruolo = :ruolo) AND " +
-            "(:searchTerm IS NULL OR :searchTerm = '' OR " +
-            " u.nome LIKE %:searchTerm% OR " +
-            " u.cognome LIKE %:searchTerm% OR " +
-            " u.email LIKE %:searchTerm%)")
+            "(:searchTerm IS NULL OR " +
+            " u.nome LIKE CONCAT('%', :searchTerm, '%') OR " +
+            " u.cognome LIKE CONCAT('%', :searchTerm, '%') OR " +
+            " u.email LIKE CONCAT('%', :searchTerm, '%'))")
     Page<User> findByRuoloAndSearchTerm(
             @Param("ruolo") UserRole ruolo,
             @Param("searchTerm") String searchTerm,

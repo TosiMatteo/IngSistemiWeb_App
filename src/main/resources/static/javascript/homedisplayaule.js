@@ -55,8 +55,10 @@ function updateAulaDetails(aula) {
     updateResources(aula);
     updateAulaStatus(aula);
 
-    // Imposta orari di apertura
-    document.getElementById("aula-orari").textContent = "08:00 - 20:00";
+    // Orari
+    const apertura = aula.orarioApertura ? aula.orarioApertura.slice(0, 5) : "N/D";
+    const chiusura = aula.orarioChiusura ? aula.orarioChiusura.slice(0, 5) : "N/D";
+    document.getElementById("aula-orari").textContent = `${apertura} - ${chiusura}`;
 }
 
 /**
@@ -106,11 +108,11 @@ function updateAulaStatus(aula) {
 function updateAulaImage(aula) {
     const img = document.getElementById("aula-image");
 
-    // Usa l'immagine specificata o fallback su default
+    img.src = "/images/placeholder.jpg"; // Immagine di default
+
+    // Se l'aula ha un percorso immagine specificato usa quello.
     if (aula.imageUrl && aula.imageUrl.trim() !== "") {
         img.src = aula.imageUrl;
-    } else {
-        img.src = "/images/placeholder.jpg";
     }
 
     // Testo alternativo per accessibilità

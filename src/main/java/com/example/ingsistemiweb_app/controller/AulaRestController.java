@@ -17,10 +17,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime; // Importa LocalDateTime
+import java.time.LocalTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * Controller REST per la gestione delle aule.
@@ -98,57 +97,87 @@ public class AulaRestController {
 
     /**
      * Aggiorna una specifica aula identificata dall'ID.
-     * Mappa le richieste PUT a "/api/aule/{id}".
+     * Gestisce sia l'aggiornamento dei dati dell'aula che il caricamento di una nuova immagine.
      * Se l'aula viene disattivata, termina automaticamente tutte le prenotazioni attive
-     * e invia email di notifica agli utenti interessati.
-     * 
+     * associate ad essa e invia email di notifica agli utenti interessati.
+     *
      * @param id L'identificativo dell'aula da aggiornare.
-     * @param updatedAula L'oggetto Aula con i dati aggiornati.
-     * @return ResponseEntity con messaggio di conferma o errore.
+     * @param nome Il nuovo nome dell'aula.
+     * @param capienza La nuova capienza dell'aula.
+     * @param risorse Le risorse dell'aula come stringa separata da virgole.
+     * @param attiva Lo stato di attivazione dell'aula (true se attiva, false se disattiva).
+     * @param immagineFile Il nuovo file immagine da caricare (opzionale).
+     * @return ResponseEntity con l'aula aggiornata (status 200 OK) o 404 Not Found se l'aula non esiste.
      */
-    @PutMapping("/{id}")
-    @Transactional // Assicura l'atomicità delle operazioni in caso di più aggiornamenti al database
-    public ResponseEntity<String> updateAula(@PathVariable Long id, @RequestBody Aula updatedAula) {
+    @PutMapping(value = "/{id}", consumes = "multipart/form-data")
+    @Transactional // Assicura che l'intera operazione sia atomica e coerente.
+    public ResponseEntity<Aula> updateAulaWithImage(
+            @PathVariable Long id,
+            @RequestParam("nome") String nome,
+            @RequestParam("capienza") int capienza,
+            @RequestParam("risorse") String risorse,
+            @RequestParam("attiva") boolean attiva,
+            @RequestParam("orarioApertura") String orarioAperturaStr,
+            @RequestParam("orarioChiusura") String orarioChiusuraStr,
+            @RequestParam(value = "immagineFile", required = false) MultipartFile immagineFile) {
+
+        // 1. Cerca l'aula esistente nel database tramite il suo ID.
         return aulaRepository.findById(id).map(aula -> {
-            // Controlla se l'aula sta per essere disattivata confrontando lo stato attuale con quello richiesto
-            boolean wasActive = aula.isAttiva();         // Stato attuale: attiva?
-            boolean willBeInactive = !updatedAula.isAttiva(); // Stato futuro: sarà disattivata?
 
-            // Aggiorna tutti i campi dell'aula con i valori forniti nella richiesta
-            aula.setNome(updatedAula.getNome());          // Aggiorna il nome
-            aula.setCapienza(updatedAula.getCapienza());   // Aggiorna la capienza
-            aula.setRisorse(updatedAula.getRisorse());     // Aggiorna la lista delle risorse disponibili
-            aula.setAttiva(updatedAula.isAttiva());        // Aggiorna lo stato di attivazione
+            // Salva lo stato di attivazione attuale dell'aula prima di qualsiasi modifica,
+            // per determinare se è stata disattivata dopo l'aggiornamento.
+            boolean wasActive = aula.isAttiva();
 
-            aulaRepository.save(aula); // Persiste le modifiche nel database
+            // 2. Aggiorna le proprietà dell'aula con i nuovi dati forniti dalla richiesta.
+            aula.setNome(nome);
+            aula.setCapienza(capienza);
+            if (!aula.isAttiva()) {
+                aula.setOrarioApertura(LocalTime.parse(orarioAperturaStr));
+                aula.setOrarioChiusura(LocalTime.parse(orarioChiusuraStr));
+            }
+            // Converte la stringa di risorse separata da virgole in una lista.
+            aula.setRisorse(new java.util.ArrayList<>(java.util.Arrays.asList(risorse.split(","))));
+            aula.setAttiva(attiva);
 
-            // Se l'aula passa da stato attivo a inattivo, gestisci le prenotazioni esistenti
-            if (wasActive && willBeInactive) {
-                // Recupera tutte le prenotazioni attive associate all'aula
+            // 3. Gestione del caricamento dell'immagine:
+            // Se è stato fornito un nuovo file immagine e non è vuoto, lo salva.
+            if (immagineFile != null && !immagineFile.isEmpty()) {
+                String oldImageUrl = aula.getImageUrl(); // Recupera l'URL dell'immagine precedente.
+                String newImageUrl = fileStorageService.save(immagineFile); // Salva il nuovo file.
+                aula.setImageUrl(newImageUrl); // Aggiorna l'URL dell'immagine nell'aula.
+                fileStorageService.delete(oldImageUrl); // Elimina il vecchio file immagine per liberare spazio.
+            }
+
+            // 4. Salva le modifiche all'oggetto Aula nel database.
+            Aula updatedAula = aulaRepository.save(aula);
+
+            // 5. Gestione delle prenotazioni in caso di disattivazione dell'aula:
+            // Se l'aula era attiva e ora è stata disattivata, termina le prenotazioni attive.
+            if (wasActive && !updatedAula.isAttiva()) {
+                // Recupera tutte le prenotazioni che erano attive per quest'aula.
                 List<Prenotazione> prenotazioniDaTerminare = prenotazioneRepository.findByAulaAndAttivaTrue(aula);
 
-                // Processa ogni prenotazione attiva
+                // Itera su ogni prenotazione da terminare:
                 for (Prenotazione prenotazione : prenotazioniDaTerminare) {
-                    prenotazione.setAttiva(false);             // Marca la prenotazione come non più attiva
-                    prenotazione.setFine(LocalDateTime.now()); // Imposta la fine della prenotazione all'istante corrente
-                    prenotazioneRepository.save(prenotazione);  // Persiste le modifiche alla prenotazione
+                    prenotazione.setAttiva(false);             // Imposta la prenotazione come non più attiva.
+                    prenotazione.setFine(LocalDateTime.now()); // Imposta l'orario di fine della prenotazione all'istante corrente.
+                    prenotazioneRepository.save(prenotazione);  // Salva le modifiche alla prenotazione nel database.
 
-                    // Prepara e invia un'email di notifica all'utente della prenotazione
+                    // Invia una notifica via email all'utente interessato dalla terminazione della prenotazione.
                     User utente = prenotazione.getUtente();
                     if (utente != null) {
-                        // Prepara i dettagli dell'email
-                        String destinatario = utente.getEmail();  // Indirizzo email dell'utente
-                        String oggetto = "Avviso: Prenotazione Terminata - Aula Disattivata"; // Oggetto dell'email
-                        // Corpo dell'email formattato con i dettagli della prenotazione
+                        // Costruisce il messaggio email con i dettagli della prenotazione terminata.
+                        String destinatario = utente.getEmail();
+                        String oggetto = "Avviso: Prenotazione Terminata - Aula Disattivata";
                         String testo = String.format(
                                 """
                                         Gentile %s,
-
+    
                                         La informiamo che la sua prenotazione dell'aula '%s' per il giorno %s dalle %s alle %s è stata terminata.
                                         Questo è dovuto alla disattivazione dell'aula.
-
+    
                                         Ci scusiamo per il disagio.
-
+    
                                         Cordiali saluti,
                                         Il team di Gestione Aule""",
                                 utente.getNome(),
@@ -162,8 +191,9 @@ public class AulaRestController {
                     }
                 }
             }
-            return ResponseEntity.ok("Aula aggiornata!");
-        }).orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body("Errore: Aula non trovata."));
+            // Restituisce una risposta OK con l'aula aggiornata.
+            return ResponseEntity.ok(updatedAula);
+        }).orElse(ResponseEntity.notFound().build()); // Se l'aula non è stata trovata, restituisce 404 Not Found.
     }
 
     /**
@@ -187,8 +217,10 @@ public class AulaRestController {
         // Parsifica la data e definisce gli orari di apertura/chiusura dell'aula per la giornata.
         LocalDate localDate = LocalDate.parse(data);
         ZoneId zona = ZoneId.of("Europe/Rome"); // Fuso orario per i calcoli.
-        LocalDateTime start = localDate.atTime(8, 0); // Orario di apertura (08:00).
-        LocalDateTime end = localDate.atTime(20, 0);  // Orario di chiusura (20:00).
+        LocalTime apertura = aula.getOrarioApertura();
+        LocalTime chiusura = aula.getOrarioChiusura();
+        LocalDateTime start = localDate.atTime(apertura);
+        LocalDateTime end = localDate.atTime(chiusura);
 
         List<SlotDisponibilita> slots = new ArrayList<>(); // Lista per memorizzare gli slot disponibili.
         LocalDateTime cursor = start; // Cursore per iterare sugli slot di tempo.
@@ -251,6 +283,8 @@ public class AulaRestController {
             @RequestParam("nome") String nome,
             @RequestParam("capienza") int capienza,
             @RequestParam("risorse") String risorse,
+            @RequestParam("orarioApertura") String orarioAperturaStr,
+            @RequestParam("orarioChiusura") String orarioChiusuraStr,
             @RequestParam("attiva") boolean attiva,
             @RequestParam(value = "immagineFile", required = false) MultipartFile immagineFile) {
 
@@ -259,6 +293,8 @@ public class AulaRestController {
         newAula.setNome(nome);                                     // Imposta il nome dell'aula
         newAula.setCapienza(capienza);                             // Imposta la capienza massima
         newAula.setRisorse(java.util.Arrays.asList(risorse.split(","))); // Converte la stringa risorse in lista
+        newAula.setOrarioApertura(LocalTime.parse(orarioAperturaStr));
+        newAula.setOrarioChiusura(LocalTime.parse(orarioChiusuraStr));
         newAula.setAttiva(attiva);                                // Imposta lo stato di attivazione
 
         // Gestione dell'immagine dell'aula (opzionale)
@@ -271,6 +307,30 @@ public class AulaRestController {
         Aula savedAula = aulaRepository.save(newAula);
         // Restituisce l'aula creata con status 201 (Created)
         return new ResponseEntity<>(savedAula, HttpStatus.CREATED);
+    }
+
+    @DeleteMapping("/{id}")
+    @Transactional
+    public ResponseEntity<Object> deleteAula(@PathVariable Long id) {
+        return aulaRepository.findById(id).map(aula -> {
+
+            // Prima di eliminare l'aula, recupera il percorso dell'immagine
+            String imageUrlToDelete = aula.getImageUrl();
+
+            // 1. Elimina le prenotazioni associate
+            List<Prenotazione> prenotazioniAssociate = prenotazioneRepository.findByAula(aula);
+            prenotazioneRepository.deleteAll(prenotazioniAssociate);
+
+            // 2. Elimina l'aula dal database
+            aulaRepository.delete(aula);
+
+            // 3. Elimina il file immagine associato dal disco del server
+            fileStorageService.delete(imageUrlToDelete);
+
+            // Restituisce 204 No Content per indicare che l'operazione è riuscita ma non c'è corpo da restituire.
+            return ResponseEntity.noContent().build();
+
+        }).orElse(ResponseEntity.notFound().build());
     }
 
 }

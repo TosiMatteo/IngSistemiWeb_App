@@ -16,11 +16,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
+import java.time.*;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 
@@ -137,6 +133,10 @@ public class PrenotazioneService {
         //      - PROFESSORE: preavviso 2-14 giorni, prenota l'intera capienza.
         //      - STUDENTE: fascia oraria 08-20, prenota 1 posto.
         int postiDaPrenotare;
+        LocalTime apertura = aula.getOrarioApertura();
+        LocalTime chiusura = aula.getOrarioChiusura();
+        LocalTime inizioOrario = inizio.toLocalTime();
+        LocalTime fineOrario = fine.toLocalTime();
         if (type == PrenotazioneType.PROFESSORE_FULL_ROOM) {
             // Validazioni Professore
             if (utente.getRuolo() != UserRole.PROFESSORE) {
@@ -156,8 +156,8 @@ public class PrenotazioneService {
             if (!inizio.toLocalDate().equals(fine.toLocalDate())) {
                 throw new IllegalArgumentException("Le prenotazioni studenti sono valide solo per la stessa giornata.");
             }
-            if (inizio.getHour() < 8 || fine.getHour() > 20 || (fine.getHour() == 20 && fine.getMinute() > 0)) {
-                throw new IllegalArgumentException("Le prenotazioni studenti sono consentite solo tra le 08:00 e le 20:00.");
+            if (inizioOrario.isBefore(apertura) || fineOrario.isAfter(chiusura)) {
+                throw new IllegalArgumentException("L'orario selezionato non rientra negli orari di apertura dell'aula.");
             }
             postiDaPrenotare = 1; // Prenota un singolo posto
         } else {

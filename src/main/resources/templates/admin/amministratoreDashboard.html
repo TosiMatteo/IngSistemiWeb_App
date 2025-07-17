@@ -17,18 +17,15 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
-    <script th:src="@{/javascript/admingestioneaula.js}"></script>
 </head>
 <body>
 
 <!-- Inclusione dell'header comune da template fragment -->
 <div th:replace="~{fragments/header :: header}"></div>
-
 <hr style="height: 3px; background-color: #3e77c1; border: none; margin: 0;">
 
 <!-- Inclusione della navbar comune da template fragment -->
 <div th:replace="~{fragments/navbar :: navbar}"></div>
-
 <hr style="height: 3px; background-color: #3e77c1; border: none; margin: 0;">
 
 <section class="section">
@@ -41,96 +38,124 @@
             <h2 class="title">Gestione aule</h2>
 
             <!-- Dropdown selezione aula -->
-            <div class="field is-grouped">
-                <div class="control">
-                    <label class="label">Seleziona un'aula da modificare oppure crea una nuova aula</label>
-                    <div class="select">
-                        <select id="aulaSelect">
-                            <option value="">-- Seleziona --</option>
-                            <option th:each="aula : ${aule}"
-                                    th:value="${aula.id}"
-                                    th:data-capienza="${aula.capienza}"
-                                    th:data-risorse="${aula.risorseString}"
-                                    th:data-attiva="${aula.attiva}"
-                                    th:data-imageurl="${aula.imageUrl}"
-                                    th:text="${aula.nome}">
-                            </option>
-                        </select>
+            <div class="columns is-vcentered">
+                <div class="column is-narrow">
+                    <div class="field">
+                        <label class="label">Seleziona un'aula da modificare</label>
+                        <div class="control">
+                            <div class="select">
+                                <select id="aulaSelect">
+                                    <option value="">-- Seleziona --</option>
+                                    <option th:each="aula : ${aule}"
+                                            th:value="${aula.id}"
+                                            th:data-capienza="${aula.capienza}"
+                                            th:data-risorse="${aula.risorseString}"
+                                            th:data-orarioapertura="${aula.orarioApertura}"
+                                            th:data-orariochiusura="${aula.orarioChiusura}"
+                                            th:data-attiva="${aula.attiva}"
+                                            th:data-imageurl="${aula.imageUrl}"
+                                            th:text="${aula.nome}">
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="control">
-                    <label class="label">&nbsp;</label>
-                    <button id="btn-new-aula" class="button is-link is-light is-right">Crea Nuova Aula</button>
+                <div class="column is-narrow">
+                    <div class="field">
+                        <label class="label">Oppure</label>
+                        <div class="control">
+                            <button id="btn-new-aula" class="button is-link">Crea Nuova Aula</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <!-- Form dettagli aula (nascosto inizialmente) -->
             <div id="aulaDetails" style="display: none;">
-                <div class="columns">
-                    <div class="column is-half">
-                        <div class="field">
-                            <label class="label">Nome</label>
-                            <div class="control">
-                                <input class="input" type="text" id="aulaNome" style="max-width: 300px">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="column is-half">
-                        <div class="field">
-                            <label class="label">Capienza</label>
-                            <div class="control">
-                                <input class="input" type="number" id="aulaCapienza" style="max-width: 150px">
-                            </div>
+                <hr> <div class="columns is-vcentered">
+                <div class="column is-half">
+                    <div class="field">
+                        <label class="label">Nome Aula</label>
+                        <div class="control">
+                            <input class="input" type="text" id="aulaNome">
                         </div>
                     </div>
                 </div>
+                <div class="column">
+                    <div class="field">
+                        <label class="label">Stato</label>
+                        <div class="control">
+                            <label class="checkbox">
+                                <input type="checkbox" id="aulaAttiva">
+                                <span id="attiva-label" class="ml-2">Attiva</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
                 <div class="columns">
-                    <div class="column is-two-thirds">
-                        <div class="field">
-                            <label class="label">Risorse</label>
+                    <div class="column is-half">
+                        <div class="field is-grouped">
                             <div class="control">
-                                <input class="input" type="text" id="aulaRisorse" placeholder="Proiettore, Lavagna, WiFi" style="max-width: 400px">
+                                <label class="label">Orario Apertura</label>
+                                <input class="input" type="time" id="orarioApertura">
+                            </div>
+                            <div class="control">
+                                <label class="label">Orario Chiusura</label>
+                                <input class="input" type="time" id="orarioChiusura">
                             </div>
                         </div>
                     </div>
                     <div class="column">
                         <div class="field">
-                            <label class="checkbox">
-                                <input type="checkbox" id="aulaAttiva"> Aula Attiva
-                            </label>
+                            <label class="label">Capienza</label>
+                            <div class="control">
+                                <input class="input" type="number" id="aulaCapienza" style="max-width: 100px">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <p class="help is-danger mb-4" id="warning-modifica" style="display: none;">
+                    Per modificare orari e capienza, l'aula deve essere impostata su "Non Attiva".
+                </p>
+
+                <div class="columns">
+                    <div class="column">
+                        <div class="field">
+                            <label class="label">Risorse</label>
+                            <div class="control">
+                                <input class="input" type="text" id="aulaRisorse" placeholder="Proiettore, Lavagna, WiFi">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div id="image-upload-field" class="field">
+                            <label class="label">Carica/Sostituisci Immagine</label>
+                            <div class="control">
+                                <div class="file has-name">
+                                    <label class="file-label">
+                                        <input class="file-input" type="file" name="immagine" id="aulaImmagineFile">
+                                        <span class="file-cta">
+                                    <span class="file-icon"><i class="fas fa-upload"></i></span>
+                                    <span class="file-label">Scegli file…</span>
+                                </span>
+                                        <span class="file-name" id="file-name-display">Nessun file selezionato</span>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div id="image-upload-field" class="field">
-                    <label class="label">Carica Immagine Aula</label>
+                <hr>
+                <div class="field is-grouped is-grouped-left">
                     <div class="control">
-                        <div class="file has-name">
-                            <label class="file-label">
-                                <input class="file-input" type="file" name="immagine" id="aulaImmagineFile">
-                                <span class="file-cta">
-                        <span class="file-icon"><i class="fas fa-upload"></i></span>
-                        <span class="file-label">Scegli un file…</span>
-                    </span>
-                                <span class="file-name" id="file-name-display">Nessun file selezionato</span>
-                            </label>
-                        </div>
+                        <button id="btn-save-aula" class="button is-primary">Salva</button>
                     </div>
-                </div>
-
-                <div id="image-path-field" class="field">
-                    <label class="label">Percorso Immagine Esistente</label>
                     <div class="control">
-                        <input class="input" type="text" id="aulaImageUrl" placeholder="/images/nomefile.jpg" disabled>
-                    </div>
-                    <p class="help">Questo campo non è modificabile. Per cambiare immagine, occorre ricaricarla.</p>
-                </div>
-
-
-                <div class="field is-grouped mt-4">
-                    <div class="control">
-                        <button id="btn-save-aula" class="button is-primary">Salva Modifiche</button>
+                        <button id="btn-delete-aula" class="button is-danger" style="display: none;">Elimina</button>
                     </div>
                     <div class="control">
                         <button id="btn-cancel" class="button is-light">Annulla</button>
@@ -226,6 +251,8 @@
 
 <!-- Icone Font Awesome -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
+<script th:src="@{/javascript/admingestioneaula.js}"></script>
+<script th:src="@{/javascript/admingestioneprenotazioni.js}"></script>
 <!-- Script per download PDF -->
 <script th:src="@{/javascript/admindownloadtable.js}"></script>
 </body>

@@ -85,7 +85,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             });
             const page = response.data;
-            renderPrenotazioni(page.content, reset);
+            renderPrenotazioniStudente(page.content, reset);
             isLastPage = page.last;
             // Nascondi il pulsante "Mostra di più" se siamo all'ultima pagina
             mostraDiPiuBtn.classList.toggle('is-hidden', isLastPage);
@@ -104,7 +104,7 @@ document.addEventListener("DOMContentLoaded", () => {
      * @param {Array} prenotazioni - Array di oggetti prenotazione da visualizzare
      * @param {boolean} reset - Se true, svuota la tabella prima di aggiungere le nuove righe
      */
-    function renderPrenotazioni(prenotazioni, reset) {
+    function renderPrenotazioniStudente(prenotazioni, reset) {
         // Se reset è true, svuota la tabella
         if (reset) prenotazioniTableBody.innerHTML = '';
 
@@ -126,7 +126,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 // Determinazione dello stato visivo
                 if (p.checkedIn) statoHtml = '<span class="tag is-success">Check-in Effettuato</span>';
                 else if (adesso > fineFinestraCheckIn) statoHtml = '<span class="tag is-danger">Mancato Check-in</span>';
-                else statoHtml = '<span class="tag is-warning">Attiva</span>';
+                else statoHtml = '<span class="tag is-success is-light"><i class="fas fa-check-circle mr-1"></i>Attiva</span>';
 
                 // Determinazione delle azioni disponibili
                 if (!p.checkedIn && adesso < inizioPrenotazione) 
@@ -137,11 +137,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     azioniHtml = `<button class="button is-small is-primary" onclick="effettuaCheckIn(${p.id})">Check-in</button>`;
                 else if (p.checkedIn) 
                     // Dopo check-in: possibilità di terminare
-                    azioniHtml = `<button class="button is-small is-warning" onclick="apriModal('modal-termina-prenotazione', ${p.id})">Termina</button>`;
+                    azioniHtml = `<button class="button is-small is-danger" onclick="apriModal('modal-termina-prenotazione', ${p.id})">Termina</button>`;
             } 
             // Gestione prenotazioni terminate
             else {
-                statoHtml = '<span class="tag">Terminata</span>';
+                statoHtml = '<span class="tag is-danger is-light"><i class="fas fa-times-circle mr-1"></i>Terminata</span>';
                 // Gestione recensioni
                 if (p.recensione) 
                     // Se c'è già una recensione, mostra pulsante per visualizzarla
@@ -158,7 +158,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     <td>${inizioPrenotazione.toLocaleDateString('it-IT')}</td>
                     <td>${inizioPrenotazione.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</td>
                     <td>${new Date(p.fine).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</td>
-                    <td>${statoHtml}</td><td>${azioniHtml}</td><td>${reviewButtonHtml}</td>
+                    <td>${statoHtml}</td>
+                    <td>${azioniHtml}</td>
+                    <td>${reviewButtonHtml}</td>
                 </tr>
             `;
         }).join('');

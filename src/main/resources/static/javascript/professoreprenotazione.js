@@ -119,25 +119,26 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         const rowsHtml = prenotazioni.map(p => {
-            const inizio = new Date(p.inizio);
+            const inizioPrenotazione = new Date(p.inizio);
 
             // Determinazione dello stato visivo
-            const statoClass = p.attiva ? 'is-success' : 'is-light';
-            const statoText = p.attiva ? 'Attiva' : 'Terminata';
+            const statoHtml = p.attiva
+                ? '<span class="tag is-success is-light"><i class="fas fa-check-circle mr-1"></i> Attiva</span>'
+                : '<span class="tag is-danger is-light"><i class="fas fa-times-circle mr-1"></i> Terminata</span>';
 
             // Mostra il pulsante "Termina" solo per le prenotazioni attive
             const bottoneTermina = p.attiva 
-                ? `<button class="button is-small is-warning" onclick="apriModal('modal-termina-prenotazione', ${p.id})">Termina</button>` 
+                ? `<button class="button is-small is-danger" onclick="apriModal('modal-termina-prenotazione', ${p.id})">Termina</button>`
                 : '';
 
             // Costruzione della riga HTML
             return `
                 <tr>
                     <td>${p.aula.nome}</td>
-                    <td>${inizio.toLocaleDateString('it-IT')}</td>
-                    <td>${inizio.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</td>
+                    <td>${inizioPrenotazione.toLocaleDateString('it-IT')}</td>
+                    <td>${inizioPrenotazione.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</td>
                     <td>${new Date(p.fine).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</td>
-                    <td><span class="tag ${statoClass}">${statoText}</span></td>
+                    <td>${statoHtml}</td>
                     <td>${bottoneTermina}</td>
                 </tr>
             `;

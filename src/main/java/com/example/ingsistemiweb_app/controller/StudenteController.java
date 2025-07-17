@@ -49,7 +49,7 @@ public class StudenteController {
      * @return ResponseEntity con un messaggio di successo o errore.
      */
     @PostMapping("/prenotazioni")
-    public ResponseEntity<String> prenotaAula(
+    public ResponseEntity<String> prenotaAulaStudente(
             @RequestBody PrenotazioneRequest request,
             Principal principal) {
         try {
