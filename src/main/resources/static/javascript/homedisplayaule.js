@@ -69,14 +69,12 @@ function updateAulaDetails(aula) {
 function updateResources(aula) {
     const risorseEl = document.getElementById("aula-risorse");
 
-    if (Array.isArray(aula.risorse)) {
-        // Unisce array di risorse in stringa
-        risorseEl.textContent = aula.risorse.join(", ");
-    } else if (typeof aula.risorse === "string" && aula.risorse.trim() !== "") {
-        // Usa la stringa direttamente
-        risorseEl.textContent = aula.risorse;
+    // Controlla se la proprietà 'risorseString' esiste nell'oggetto aula
+    // e se non è vuota, per usare la stringa già formattata dal backend.
+    if (aula.risorseString && aula.risorseString.trim() !== "") {
+        risorseEl.textContent = aula.risorseString;
     } else {
-        // Messaggio default per risorse mancanti
+        // Messaggio di default se non ci sono risorse o la stringa è vuota
         risorseEl.textContent = "Nessuna risorsa specificata";
     }
 }
