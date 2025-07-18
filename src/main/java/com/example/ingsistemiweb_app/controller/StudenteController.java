@@ -71,7 +71,7 @@ public class StudenteController {
      * Mappa le richieste GET a "/api/student/prenotazioni".
      *
      * @param principal Oggetto `Principal` contenente l'identità dell'utente autenticato.
-     * @return Una lista di oggetti `Prenotazione` appartenenti allo studente corrente, ordinate (presumibilmente per data/ora di inizio).
+     * @return Una lista di oggetti `Prenotazione` appartenenti allo studente corrente, ordinate (per data/ora di inizio).
      */
     @GetMapping("/prenotazioni")
     public Page<Prenotazione> getPrenotazioniStudente(
