@@ -46,7 +46,7 @@ public class PrenotazioneScheduler {
 
         for (Prenotazione p : prenotazioniDaAnnullare) {
             try {
-                // Riusa la logica di terminazione esistente!
+                // Riusa la logica di terminazione esistente
                 prenotazioneService.terminaPrenotazione(p.getId(), p.getUtente().getEmail());
                 LOGGER.info(String.format("Prenotazione ID %d annullata per mancato check-in.", p.getId()));
             } catch (Exception e) {
