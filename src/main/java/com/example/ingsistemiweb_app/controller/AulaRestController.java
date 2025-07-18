@@ -250,12 +250,9 @@ public class AulaRestController {
      */
     @GetMapping("/{id}/posti-occupati")
     public ResponseEntity<Integer> getPostiOccupati(@PathVariable Long id) {
-        // Trova l'aula per ID, restituisce 404 se non trovata.
-        Optional<Aula> optionalAula = aulaRepository.findById(id);
-        if (optionalAula.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-        Aula aula = optionalAula.get();
+        // Trova l'aula per ID, lancia un'eccezione se non trovata.
+        Aula aula = aulaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Aula non trovata"));
 
         // Ottieni l'ora corrente
         LocalDateTime now = LocalDateTime.now();
