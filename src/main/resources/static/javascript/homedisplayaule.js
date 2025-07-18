@@ -5,6 +5,29 @@
  * @type {number}
  */
 let currentIndex = 0;
+let aule = [];
+
+/**
+ * Funzione principale che carica le aule attive dal server e avvia il carosello.
+ * Viene eseguita al caricamento della pagina.
+ */
+async function initCarousel() {
+    try {
+        // 1. Chiede al server l'elenco aggiornato delle aule attive.
+        const response = await axios.get('/api/aule');
+        aule = response.data; // Popola l'array globale con i dati freschi.
+
+        // 2. Avvia la visualizzazione del carosello.
+        if (Array.isArray(aule) && aule.length > 0) {
+            displayAula(0); // Mostra la prima aula.
+        } else {
+            document.getElementById("aula-nome").textContent = "Nessuna aula disponibile";
+        }
+    } catch (error) {
+        console.error("Errore nel caricamento delle aule:", error);
+        document.getElementById("aula-nome").textContent = "Errore nel caricamento delle aule";
+    }
+}
 
 /**
  * Visualizza i dettagli di un'aula specifica nell'interfaccia utente.
@@ -145,13 +168,9 @@ function nextAula() {
     displayAula(currentIndex);
 }
 
-// Inizializzazione al caricamento del DOM
+/**
+ * Event Listener che avvia tutto al caricamento del DOM.
+ */
 document.addEventListener("DOMContentLoaded", () => {
-    if (Array.isArray(aule) && aule.length > 0) {
-        // Visualizza la prima aula
-        displayAula(0);
-    } else {
-        // Gestione caso senza aule
-        document.getElementById("aula-nome").textContent = "Nessuna aula disponibile";
-    }
+    initCarousel(); // Avvia il processo di caricamento dinamico.
 });

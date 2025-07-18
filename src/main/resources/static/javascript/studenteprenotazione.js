@@ -16,6 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
         gridId: 'disponibilita-grid-interattiva',
         summaryId: 'booking-summary',
         confirmBtnId: 'conferma-prenotazione-btn',
+        resetBtnId: 'reset-selection-btn',
         apiEndpoint: '/api/studente/prenotazioni',
         maxDurationSlots: 8, // 4 ore = 8 slot da 30 min
         /**

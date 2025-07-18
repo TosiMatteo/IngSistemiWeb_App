@@ -20,7 +20,18 @@ public class FileStorageService {
      * Percorso della directory root dove vengono memorizzati i file delle immagini.
      * I file salvati in questa directory saranno accessibili pubblicamente tramite il web server.
      */
-    private final Path root = Paths.get("src/main/resources/static/images");
+    private final Path root = Paths.get("/home/matteo/Documents/ImmaginiAule");
+
+    /**
+     * Il costruttore assicura che la cartella esista all'avvio dell'applicazione.
+     */
+    public FileStorageService() {
+        try {
+            Files.createDirectories(root);
+        } catch (IOException e) {
+            throw new RuntimeException("Impossibile inizializzare la cartella per l'upload!");
+        }
+    }
 
 
     /**
@@ -50,9 +61,9 @@ public class FileStorageService {
             Files.copy(file.getInputStream(), this.root.resolve(newFilename));
 
             // Restituisce il percorso web accessibile relativo alla root del web server
-            return "/images/" + newFilename;
+            return "/uploads/" + newFilename;
         } catch (Exception e) {
-            throw new RuntimeException("Could not store the file. Error: " + e.getMessage());
+            throw new RuntimeException("Impossibile salvare il file. Errore: " + e.getMessage());
         }
     }
 
@@ -62,13 +73,13 @@ public class FileStorageService {
      */
     public void delete(String imageUrl) {
         // Se l'URL dell'immagine non è valido o è nullo, non fare nulla.
-        if (imageUrl == null || imageUrl.isEmpty() || !imageUrl.startsWith("/images/")) {
+        if (imageUrl == null || !imageUrl.startsWith("/uploads/")) {
             return;
         }
 
         try {
             // Estrai il nome del file dal percorso web
-            String filename = imageUrl.substring("/images/".length());
+            String filename = imageUrl.substring("/uploads/".length());
             // Costruisci il percorso completo del file sul disco
             Path filePath = root.resolve(filename);
 

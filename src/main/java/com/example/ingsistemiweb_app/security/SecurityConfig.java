@@ -42,7 +42,7 @@ public class SecurityConfig {
                         // alle pagine di login e registrazione e all'endpoint di invio email.
                         .requestMatchers(
                                 "/", "/login", "/registrazione", "/index", "/send-email",
-                                "/css/**", "/javascript/**", "/images/**"
+                                "/css/**", "/javascript/**", "/images/**", "/uploads/**"
                         ).permitAll()
                         // Permette l'accesso pubblico a specifiche API (es. per la disponibilità aule)
                         .requestMatchers("/api/aule/*/posti-occupati").permitAll()
