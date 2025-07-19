@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class SlotDisponibilita {
+public class SlotDisponibilitaDTO {
     private String inizio;  // Timestamp ISO-8601
     private String fine;     // Timestamp ISO-8601
     private int liberi;      // Posti disponibili nello slot

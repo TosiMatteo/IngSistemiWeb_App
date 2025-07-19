@@ -1,6 +1,6 @@
 package com.example.ingsistemiweb_app.controller;
 
-import com.example.ingsistemiweb_app.dto.EmailRequest; // Data Transfer Object per la richiesta email
+import com.example.ingsistemiweb_app.dto.EmailRequestDTO; // Data Transfer Object per la richiesta email
 import com.example.ingsistemiweb_app.service.EmailSenderService; // Servizio per l'invio effettivo delle email
 import org.springframework.http.ResponseEntity; // Utilizzato per costruire risposte HTTP
 import org.springframework.web.bind.annotation.PostMapping; // Annota un metodo come gestore di richieste POST
@@ -27,14 +27,14 @@ public class EmailController {
 
     /**
      * Gestisce le richieste POST all'endpoint "/send-email".
-     * Riceve un oggetto `EmailRequest` dal corpo della richiesta HTTP (presumibilmente JSON).
+     * Riceve un oggetto `EmailRequestDTO` dal corpo della richiesta HTTP (presumibilmente JSON).
      * Delega l'invio effettivo dell'email al `EmailSenderService`.
      *
-     * @param request Oggetto `EmailRequest` contenente destinatario, oggetto e corpo dell'email.
+     * @param request Oggetto `EmailRequestDTO` contenente destinatario, oggetto e corpo dell'email.
      * @return `ResponseEntity<String>` che indica il successo o il fallimento dell'operazione.
      */
     @PostMapping("/send-email") // Mappa le richieste POST a "/send-email".
-    public ResponseEntity<String> sendEmail(@RequestBody EmailRequest request) {
+    public ResponseEntity<String> sendEmail(@RequestBody EmailRequestDTO request) {
         // Chiama il metodo `sendEmail` del servizio, passando i dati dalla richiesta.
         emailSenderService.sendEmail(
                 request.getTo(),     // Indirizzo email del destinatario.

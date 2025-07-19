@@ -1,6 +1,6 @@
 package com.example.ingsistemiweb_app.controller;
 
-import com.example.ingsistemiweb_app.dto.SlotDisponibilita;
+import com.example.ingsistemiweb_app.dto.SlotDisponibilitaDTO;
 import com.example.ingsistemiweb_app.service.FileStorageService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -202,11 +202,11 @@ public class AulaRestController {
      *
      * @param id L'ID dell'aula per cui verificare la disponibilità.
      * @param data La data di interesse nel formato stringa ISO (YYYY-MM-DD).
-     * @return `ResponseEntity<List<SlotDisponibilita>>` contenente una lista di slot orari,
+     * @return `ResponseEntity<List<SlotDisponibilitaDTO>>` contenente una lista di slot orari,
      * ciascuno con l'intervallo di tempo e il numero di posti disponibili.
      */
     @GetMapping("/{id}/disponibilita") // Mappa le richieste GET per la disponibilità dell'aula.
-    public ResponseEntity<List<SlotDisponibilita>> getDisponibilita(
+    public ResponseEntity<List<SlotDisponibilitaDTO>> getDisponibilita(
             @PathVariable Long id, // ID dell'aula.
             @RequestParam String data) { // Data come stringa.
 
@@ -222,7 +222,7 @@ public class AulaRestController {
         LocalDateTime start = localDate.atTime(apertura);
         LocalDateTime end = localDate.atTime(chiusura);
 
-        List<SlotDisponibilita> slots = new ArrayList<>(); // Lista per memorizzare gli slot disponibili.
+        List<SlotDisponibilitaDTO> slots = new ArrayList<>(); // Lista per memorizzare gli slot disponibili.
         LocalDateTime cursor = start; // Cursore per iterare sugli slot di tempo.
 
         // Genera slot di 30 minuti per tutta la giornata lavorativa dell'aula.
@@ -230,7 +230,7 @@ public class AulaRestController {
             LocalDateTime slotEnd = cursor.plusMinutes(30); // Fine dello slot corrente.
             // Conta le prenotazioni esistenti che si sovrappongono a questo slot.
             long occupati = prenotazioneRepository.sumPostiOverlapping(aula, cursor, slotEnd);
-            slots.add(new SlotDisponibilita(
+            slots.add(new SlotDisponibilitaDTO(
                     cursor.atZone(zona).toOffsetDateTime().toString(), // Inizio slot (formato ISO con offset).
                     slotEnd.atZone(zona).toOffsetDateTime().toString(),  // Fine slot (formato ISO con offset).
                     aula.getCapienza() - (int) occupati // Posti disponibili = Capienza - Posti occupati.

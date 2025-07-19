@@ -10,7 +10,7 @@ import lombok.Setter;
 
 @Setter
 @Getter
-public class PrenotazioneRequest {
+public class PrenotazioneRequestDTO {
     private Long aulaId;       // ID dell'aula da prenotare
     private String inizio;     // Timestamp ISO-8601 dell'inizio
     private String fine;       // Timestamp ISO-8601 della fine

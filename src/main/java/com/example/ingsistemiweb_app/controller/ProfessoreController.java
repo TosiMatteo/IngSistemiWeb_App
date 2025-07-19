@@ -1,6 +1,6 @@
 package com.example.ingsistemiweb_app.controller;
 
-import com.example.ingsistemiweb_app.dto.PrenotazioneRequest;
+import com.example.ingsistemiweb_app.dto.PrenotazioneRequestDTO;
 import com.example.ingsistemiweb_app.dto.PrenotazioneType;
 import com.example.ingsistemiweb_app.model.Prenotazione;
 import com.example.ingsistemiweb_app.service.PrenotazioneService;
@@ -38,7 +38,7 @@ public class ProfessoreController {
      * che si sovrappongono all'intervallo richiesto. Questo endpoint gestisce la creazione
      * di prenotazioni di tipo PROFESSORE_FULL_ROOM, che occupano tutti i posti dell'aula.
      *
-     * @param request Oggetto PrenotazioneRequest contenente i dettagli della prenotazione (aula, orario di inizio e fine).
+     * @param request Oggetto PrenotazioneRequestDTO contenente i dettagli della prenotazione (aula, orario di inizio e fine).
      * @param principal L'oggetto `Principal` che rappresenta l'utente autenticato (professore).
      * @return ResponseEntity con un messaggio di successo o un messaggio di errore appropriato.
      * @throws UsernameNotFoundException Se l'utente autenticato non viene trovato nel sistema.
@@ -47,7 +47,7 @@ public class ProfessoreController {
      */
     @PostMapping("/prenotazioni")
     public ResponseEntity<String> prenotaAulaProfessore(
-            @RequestBody PrenotazioneRequest request,
+            @RequestBody PrenotazioneRequestDTO request,
             Principal principal) {
         try {
             // Delega la logica al servizio, specificando il tipo di prenotazione come PROFESSORE_FULL_ROOM

@@ -1,6 +1,6 @@
 package com.example.ingsistemiweb_app.service;
 
-import com.example.ingsistemiweb_app.dto.PrenotazioneRequest;
+import com.example.ingsistemiweb_app.dto.PrenotazioneRequestDTO;
 import com.example.ingsistemiweb_app.model.Aula;
 import com.example.ingsistemiweb_app.model.Prenotazione;
 import com.example.ingsistemiweb_app.model.User;
@@ -104,7 +104,7 @@ public class PrenotazioneService {
      * Applica un rigoroso protocollo di validazione prima di salvare i dati.
      */
     @Transactional
-    public String creaPrenotazione(PrenotazioneRequest request, String userEmail, PrenotazioneType type) {
+    public String creaPrenotazione(PrenotazioneRequestDTO request, String userEmail, PrenotazioneType type) {
         // 1. Recupero utente e aula
         User utente = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new UsernameNotFoundException("Utente non trovato con email: " + userEmail));

@@ -1,6 +1,6 @@
 package com.example.ingsistemiweb_app.controller;
 
-import com.example.ingsistemiweb_app.dto.PrenotazioneRequest; // DTO per i dati in input della richiesta di prenotazione
+import com.example.ingsistemiweb_app.dto.PrenotazioneRequestDTO; // DTO per i dati in input della richiesta di prenotazione
 // DTO per i dati in output degli slot di disponibilità
 import com.example.ingsistemiweb_app.dto.PrenotazioneType;
 import com.example.ingsistemiweb_app.model.Prenotazione;
@@ -44,13 +44,13 @@ public class StudenteController {
      * La prenotazione fallisce se ci sono prenotazioni attive (di studenti o altri professori)
      * che si sovrappongono all'intervallo richiesto.
      *
-     * @param request Oggetto PrenotazioneRequest contenente i dettagli della prenotazione.
+     * @param request Oggetto PrenotazioneRequestDTO contenente i dettagli della prenotazione.
      * @param principal L'utente autenticato (studente).
      * @return ResponseEntity con un messaggio di successo o errore.
      */
     @PostMapping("/prenotazioni")
     public ResponseEntity<String> prenotaAulaStudente(
-            @RequestBody PrenotazioneRequest request,
+            @RequestBody PrenotazioneRequestDTO request,
             Principal principal) {
         try {
             // Delega la logica al servizio, specificando il tipo di prenotazione
