@@ -1,0 +1,59 @@
+services:
+  db:
+    image: mysql:8.4
+    container_name: gestione-aule-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-Web_app}
+      MYSQL_USER: ${DB_USERNAME:-aule}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-aule_password}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_password}
+      TZ: Europe/Rome
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      # Ping via TCP: durante l'inizializzazione MySQL avvia un server temporaneo senza rete
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: gestione-aule-mail
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+
+  app:
+    build: .
+    image: gestione-aule:latest
+    container_name: gestione-aule-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    environment:
+      DB_URL: jdbc:mysql://db:3306/${DB_NAME:-Web_app}?useSSL=false&allowPublicKeyRetrieval=true
+      DB_USERNAME: ${DB_USERNAME:-aule}
+      DB_PASSWORD: ${DB_PASSWORD:-aule_password}
+      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
+      THYMELEAF_CACHE: "true"
+      MAIL_HOST: ${MAIL_HOST:-mailpit}
+      MAIL_PORT: ${MAIL_PORT:-1025}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH:-false}
+      MAIL_SMTP_STARTTLS: ${MAIL_SMTP_STARTTLS:-false}
+      MAIL_FROM: ${MAIL_FROM:-noreply@gestione-aule.local}
+    volumes:
+      - uploads:/app/uploads
+
+volumes:
+  db-data:
+  uploads:
