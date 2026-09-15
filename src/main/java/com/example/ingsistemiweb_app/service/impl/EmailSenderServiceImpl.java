@@ -1,6 +1,7 @@
 package com.example.ingsistemiweb_app.service.impl;
 
 import com.example.ingsistemiweb_app.service.EmailSenderService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -17,16 +18,18 @@ import java.util.List;
 public class EmailSenderServiceImpl implements EmailSenderService {
 
     private final JavaMailSender javaMailSender;
-    // Email del mittente
-    private final String senderEmail = "matteo03.tosi@edu.unife.it";
+    // Email del mittente (configurabile con app.mail.from / variabile d'ambiente MAIL_FROM)
+    private final String senderEmail;
 
     /**
      * Costruttore che inizializza il servizio con un'istanza di JavaMailSender.
      * 
      * @param javaMailSender Il componente Spring per l'invio di email
+     * @param senderEmail    L'indirizzo del mittente
      */
-    public EmailSenderServiceImpl(JavaMailSender javaMailSender) {
+    public EmailSenderServiceImpl(JavaMailSender javaMailSender, @Value("${app.mail.from}") String senderEmail) {
         this.javaMailSender = javaMailSender;
+        this.senderEmail = senderEmail;
     }
 
     /**

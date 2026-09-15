@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -39,6 +40,9 @@ public class PageController {
 
     @Autowired
     private PrenotazioneRepository prenotazioneRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     /**
      * Gestisce le richieste per la homepage o la pagina index.
@@ -220,9 +224,8 @@ public class PageController {
             return "registrazione"; // Ritorna al form di registrazione.
         }
 
-        // 4. Salva il nuovo utente nel database.
-        // Nota: Qui la password viene salvata in chiaro a causa dell'uso di NoOpPasswordEncoder in SecurityConfig.
-        // Questo è un rischio di sicurezza che dovrebbe essere corretto in produzione con un PasswordEncoder robusto.
+        // 4. Salva il nuovo utente nel database, con la password cifrata (BCrypt).
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         userRepository.save(user);
 
         // 5. Reindirizza l'utente alla pagina di login con un flag di successo.

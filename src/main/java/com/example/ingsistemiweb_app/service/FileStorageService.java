@@ -1,5 +1,6 @@
 package com.example.ingsistemiweb_app.service;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
@@ -19,13 +20,15 @@ public class FileStorageService {
     /**
      * Percorso della directory root dove vengono memorizzati i file delle immagini.
      * I file salvati in questa directory saranno accessibili pubblicamente tramite il web server.
+     * Configurabile tramite la proprieta' app.upload-dir (variabile d'ambiente UPLOAD_DIR).
      */
-    private final Path root = Paths.get("/home/matteo/Documents/ImmaginiAule");
+    private final Path root;
 
     /**
      * Il costruttore assicura che la cartella esista all'avvio dell'applicazione.
      */
-    public FileStorageService() {
+    public FileStorageService(@Value("${app.upload-dir}") String uploadDir) {
+        this.root = Paths.get(uploadDir).toAbsolutePath().normalize();
         try {
             Files.createDirectories(root);
         } catch (IOException e) {

@@ -6,7 +6,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.crypto.password.NoOpPasswordEncoder; // ATTENZIONE: Questo è un encoder non sicuro!
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
+import org.springframework.security.crypto.password.DelegatingPasswordEncoder;
+import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
@@ -39,9 +41,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // --- 1. Endpoint e Risorse Pubbliche ---
                         // Permette l'accesso a tutti a risorse statiche (CSS, JS, immagini),
-                        // alle pagine di login e registrazione e all'endpoint di invio email.
+                        // e alle pagine di login e registrazione.
                         .requestMatchers(
-                                "/", "/login", "/registrazione", "/index", "/send-email",
+                                "/", "/login", "/registrazione", "/index",
                                 "/css/**", "/javascript/**", "/images/**", "/uploads/**"
                         ).permitAll()
                         // Permette l'accesso pubblico a specifiche API (es. per la disponibilità aule)
@@ -51,7 +53,12 @@ public class SecurityConfig {
                         // --- 2. Endpoint Protetti per Ruolo ---
                         // Le regole più specifiche vanno prima di quelle più generali.
                         // Accesso solo per gli AMMINISTRATORI
-                        .requestMatchers("/admin/**", "/amministratoreDashboard", "/api/admin/**", "/api/annunci/**").hasRole("AMMINISTRATORE")
+                        // (/send-email e' riservato agli admin per evitare che venga usato come relay di spam)
+                        .requestMatchers("/admin/**", "/amministratoreDashboard", "/api/admin/**", "/api/annunci/**", "/send-email").hasRole("AMMINISTRATORE")
+                        // Creazione, modifica ed eliminazione delle aule
+                        .requestMatchers(HttpMethod.POST, "/api/aule", "/api/aule/**").hasRole("AMMINISTRATORE")
+                        .requestMatchers(HttpMethod.PUT, "/api/aule/**").hasRole("AMMINISTRATORE")
+                        .requestMatchers(HttpMethod.DELETE, "/api/aule/**").hasRole("AMMINISTRATORE")
                         // Accesso solo per i PROFESSORI
                         .requestMatchers("/professore/**", "/professoreDashboard", "/api/professore/**").hasRole("PROFESSORE")
                         // Accesso solo per gli STUDENTI
@@ -89,11 +96,16 @@ public class SecurityConfig {
 
     /**
      * Bean per la gestione dell'encoder delle password.
-     * ATTENZIONE: 'NoOpPasswordEncoder' è estremamente insicuro e deve essere usato
-     * solo in ambienti di sviluppo/test. In produzione, usare un encoder robusto.
+     * Le nuove password vengono salvate con BCrypt (prefisso "{bcrypt}").
+     * Per compatibilita' con database creati dalle versioni precedenti, le password
+     * salvate in chiaro (senza prefisso) vengono ancora riconosciute al login.
      */
     @Bean
+    @SuppressWarnings("deprecation")
     public PasswordEncoder passwordEncoder() {
-        return NoOpPasswordEncoder.getInstance();
+        DelegatingPasswordEncoder encoder =
+                (DelegatingPasswordEncoder) PasswordEncoderFactories.createDelegatingPasswordEncoder();
+        encoder.setDefaultPasswordEncoderForMatches(NoOpPasswordEncoder.getInstance());
+        return encoder;
     }
 }

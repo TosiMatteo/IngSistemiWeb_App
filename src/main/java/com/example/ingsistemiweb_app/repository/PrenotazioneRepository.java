@@ -28,6 +28,7 @@ public interface PrenotazioneRepository extends JpaRepository<Prenotazione, Long
             "  AND ( (p.inizio BETWEEN :inizio AND :fine) " +
             "     OR (p.fine   BETWEEN :inizio AND :fine) " +
             "     OR (p.inizio <= :inizio AND p.fine >= :fine) )")
+
     long sumPostiOverlapping(
             @Param("aula") Aula aula,
             @Param("inizio") LocalDateTime inizio,
