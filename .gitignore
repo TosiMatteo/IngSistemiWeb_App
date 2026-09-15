@@ -37,3 +37,8 @@ out/
 .vscode/
 
 /src/main/resources/static/css/bulma/
+
+### Configurazione locale e dati runtime ###
+.ai/
+.env
+uploads/
